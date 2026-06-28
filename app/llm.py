@@ -10,7 +10,7 @@ from app.memory import format_memory_for_prompt
 
 groq_client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY", ""))
 
-MODEL       = "llama-3.1-70b-versatile"
+MODEL = "openai/gpt-oss-120b"
 MAX_TOKENS  = 600
 TEMPERATURE = 0.93
 MAX_HISTORY = 20   # Full 20 messages in context window
