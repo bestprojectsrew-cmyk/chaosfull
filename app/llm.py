@@ -95,6 +95,12 @@ def _strip_casual_markdown(text: str) -> str:
     return text.strip()
 
 
+def _strip_thinking(text: str) -> str:
+    """Remove <think>...</think> blocks that some models leak into responses."""
+    import re
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    return text.strip()
+
 def _contains_code(text: str) -> bool:
     return "```" in text or "`" in text
 
