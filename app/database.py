@@ -1,0 +1,107 @@
+"""
+database.py — PostgreSQL models v2: long-term memory, personality, emotions
+"""
+import os
+from datetime import datetime
+from sqlalchemy import (
+    Column, BigInteger, Integer, Text, String,
+    DateTime, Boolean, JSON, Float, create_engine
+)
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+
+def get_async_url(url: str) -> str:
+    url = url.replace("postgres://", "postgresql+asyncpg://")
+    url = url.replace("postgresql://", "postgresql+asyncpg://")
+    return url
+
+
+def _make_engine():
+    url = get_async_url(DATABASE_URL)
+    if not url or url.endswith("//"):
+        return None
+    return create_async_engine(
+        url, echo=False, pool_pre_ping=True, pool_size=5, max_overflow=10,
+    )
+
+
+async_engine = _make_engine()
+
+AsyncSessionLocal = sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False,
+) if async_engine else None
+
+Base = declarative_base()
+
+
+class User(Base):
+    """Core user record + active personality/language."""
+    __tablename__ = "users"
+
+    id            = Column(BigInteger, primary_key=True)   # Telegram user_id
+    username      = Column(String(64),  nullable=True)
+    first_name    = Column(String(64),  nullable=True)
+    nickname      = Column(String(64),  nullable=True)     # what they want to be called
+    language_code = Column(String(8),   nullable=True)     # last detected lang
+    personality   = Column(String(32),  default="chaotic") # active /mode
+    message_count = Column(Integer,     default=0)
+    created_at    = Column(DateTime,    default=datetime.utcnow)
+    last_seen     = Column(DateTime,    default=datetime.utcnow)
+    last_proactive= Column(DateTime,    nullable=True)     # last "yo where you at" msg
+    is_banned     = Column(Boolean,     default=False)
+
+
+class UserMemory(Base):
+    """
+    Long-term structured memory per user.
+    One row per user — JSON blob for all facts.
+    Schema of the JSON:
+    {
+      "nickname": "...",
+      "birthday": "...",
+      "fav_games": [...],
+      "fav_football_club": "...",
+      "fav_music": [...],
+      "fav_movies": [...],
+      "relationships": {"mom": "...", "bestie": "..."},
+      "facts": ["User is from Tashkent", "User hates Mondays"],
+      "recent_topics": [...],   # last 10 topics discussed
+      "mood_history": [...],    # last 5 detected moods
+    }
+    """
+    __tablename__ = "user_memory"
+
+    id         = Column(Integer,    primary_key=True, autoincrement=True)
+    user_id    = Column(BigInteger, unique=True, nullable=False)
+    data       = Column(JSON,       default=dict)   # the full memory blob
+    updated_at = Column(DateTime,   default=datetime.utcnow)
+
+
+class Message(Base):
+    """Full conversation log — all roles, all time."""
+    __tablename__ = "messages"
+
+    id         = Column(Integer,    primary_key=True, autoincrement=True)
+    user_id    = Column(BigInteger, nullable=False)
+    role       = Column(String(16), nullable=False)   # "user" | "assistant"
+    content    = Column(Text,       nullable=False)
+    language   = Column(String(8),  nullable=True)
+    emotion    = Column(String(32), nullable=True)    # detected emotion
+    created_at = Column(DateTime,   default=datetime.utcnow)
+
+
+async def init_db():
+    """Create all tables if they don't exist."""
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
