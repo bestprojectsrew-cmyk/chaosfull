@@ -53,7 +53,7 @@ _TRIGGERS = re.compile(
     # Sports
     r"score|scores|result|results|fixture|fixtures|match|matches|standings|table|"
     r"transfer|transfers|lineup|squad|coach|manager|goal|goals|"
-    r"world cup|champions league|premier league|la liga|serie a|bundesliga|ligue 1|"
+    r"world cup|wc 26|wc26|wc 2026|euro 2026|champions league|premier league|la liga|serie a|bundesliga|ligue 1|"
     r"nba|nfl|nhl|mlb|formula 1|f1|ufc|boxing|tennis|cricket|"
     # Crypto & finance
     r"bitcoin|btc|ethereum|eth|crypto|cryptocurrency|"
@@ -68,7 +68,7 @@ _TRIGGERS = re.compile(
     # Tech
     r"release|released|version|update|patch|launch|launched|"
     # General current events
-    r"trending|viral|meme|"
+    r"trending|viral|meme|going on|happening|whats up with|how is|"
     r"product price|how much does|how much is"
     r")\b",
     re.IGNORECASE,
@@ -92,11 +92,11 @@ async def _gemini_search(query: str) -> str | None:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
                 params={"key": GEMINI_KEY},
                 json={
                     "contents": [{"parts": [{"text": f"Search and summarize briefly: {query}"}]}],
-                    "tools": [{"google_search_retrieval": {}}],
+                    "tools": [{"google_search": {}}],
                     "generationConfig": {"maxOutputTokens": 300, "temperature": 0.1},
                 },
             )
@@ -141,7 +141,6 @@ async def _serper_search(query: str) -> str | None:
         if snippets:
             _ok("serper")
             return "\n".join(snippets)
-        # Empty results = likely quota hit
         _fail("serper")
     except Exception as e:
         err = str(e)
@@ -240,10 +239,8 @@ async def _ddg_search(query: str) -> str | None:
         if snippets:
             _ok("ddg")
             return "\n".join(snippets)
-        # No results (rare) — don't mark as failed
     except Exception as e:
         logger.debug(f"DDG failed: {e}")
-        # DDG rate-limits aggressively in some regions — short cooldown
         _fail("ddg")
     return None
 
