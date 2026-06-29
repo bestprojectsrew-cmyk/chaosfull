@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # ── Model choices per task type ───────────────────────────────────────────────
 GROQ_MODELS = {
-    "default":  "qwen/qwen3.6-27b",       # replaces llama-3.3-70b-versatile (deprecated Jun 2026)
+    "default":  "openai/gpt-oss-120b",       # replaces llama-3.3-70b-versatile (deprecated Jun 2026)
     "fast":     "openai/gpt-oss-20b",      # replaces llama-3.1-8b-instant (deprecated Jun 2026)
     "memory":   "openai/gpt-oss-20b",      # cheap+fast for memory extraction
 }
