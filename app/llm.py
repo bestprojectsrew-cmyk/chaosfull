@@ -154,7 +154,8 @@ async def get_ai_response(
     except RuntimeError:
         return "something broke on my end, give it a sec and try again"
 
-    # ── 7. Strip markdown from casual replies ─────────────────────────────────
+    # ── 7. Strip think blocks + markdown from casual replies ──────────────────
+    reply = _strip_thinking(reply)
     if not _contains_code(reply):
         reply = _strip_casual_markdown(reply)
 
