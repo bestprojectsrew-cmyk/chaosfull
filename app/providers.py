@@ -74,9 +74,6 @@ async def _call_groq(messages: list[dict], max_tokens: int, temperature: float, 
     )
     # gpt-oss models are reasoning models — force low effort + hidden reasoning
     # so chain-of-thought never leaks into the visible reply (no more <think> blocks)
-    if model.startswith("openai/gpt-oss"):
-        kwargs["reasoning_effort"] = "low"
-        kwargs["reasoning_format"] = "hidden"
 
     resp = await _groq.chat.completions.create(**kwargs)
     return resp.choices[0].message.content.strip()
