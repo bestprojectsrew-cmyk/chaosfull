@@ -150,7 +150,8 @@ async def _call_openrouter(messages: list[dict], max_tokens: int, temperature: f
 # ── Router ────────────────────────────────────────────────────────────────────
 
 _PROVIDERS = [
-    ("groq",       _call_groq),
+    ("groq", _call_groq),
+    ("gemini", _call_gemini),
     ("openrouter", _call_openrouter),
 ]
 
