@@ -154,7 +154,6 @@ async def _call_openrouter(messages: list[dict], max_tokens: int, temperature: f
 
 _PROVIDERS = [
     ("groq",       _call_groq),
-    ("gemini",     _call_gemini),
     ("openrouter", _call_openrouter),
 ]
 
@@ -178,15 +177,15 @@ async def chat(
             _mark_ok(name)
             return result
         except Exception as e:
-            err = str(e).lower()
-            if "429" in err or "rate" in err or "quota" in err:
+            err = str(e)
+            if "429" in err or "rate" in err.lower() or "quota" in err.lower():
                 _mark_failed(name)
                 logger.info(f"{name} rate-limited, trying next")
-            elif "not configured" in err:
-                pass   # Skip silently
+            elif "not configured" in err.lower():
+                logger.info(f"{name} skipped — no API key set")
             else:
                 _mark_failed(name)
                 logger.warning(f"{name} error: {e}")
-            last_error = e
+            last_error = f"{name}: {e}"
 
-    raise RuntimeError(f"All LLM providers failed. Last: {last_error}")
+    raise RuntimeError(f"All LLM providers failed. {last_error}")
