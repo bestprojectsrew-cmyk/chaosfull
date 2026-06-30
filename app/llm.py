@@ -159,7 +159,8 @@ async def get_ai_response(
             temperature=0.85,
             tier=tier,
         )
-    except RuntimeError:
+   except RuntimeError as e:
+        logger.error(f"All providers failed for message: {user_message[:60]!r} | {e}")
         return "something broke on my end, give it a sec and try again"
 
     # ── 7. Strip think blocks + markdown from casual replies ──────────────────
