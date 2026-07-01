@@ -455,63 +455,128 @@ async def cb_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_game_messages(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    Check if a group message is part of an active game.
-    Returns True if handled (so bot.py skips normal processing).
+    Handle active games.
+    Returns True only if a message was actually consumed by a game.
+    Returns False to let the normal AI continue.
     """
+
     if not update.message or not update.message.text:
         return False
 
-    text = update.message.text.strip().lower()
+    text = update.message.text.strip()
+    lower = text.lower()
+
     chat_data = context.chat_data
 
-    # ── Number guess game ──────────────────────────────────────────────────
+    EXIT_WORDS = {
+        "/exit",
+        "exit",
+        "quit",
+        "leave",
+        "cancel",
+        "stop",
+        "stop game",
+        "end",
+        "end game",
+    }
+
+    # ------------------------
+    # Exit any running game
+    # ------------------------
+    if lower in EXIT_WORDS:
+        chat_data.pop("numguess_active", None)
+        chat_data.pop("numguess_secret", None)
+
+        chat_data.pop("wordchain_active", None)
+        chat_data.pop("wordchain_current", None)
+        chat_data.pop("wordchain_used", None)
+
+        await update.message.reply_text("✅ Game ended.")
+        return True
+
+    # ------------------------
+    # Number Guess
+    # ------------------------
     if chat_data.get("numguess_active"):
-        try:
-            guess = int(text)
-            secret = chat_data.get("numguess_secret", 50)
-            name = update.effective_user.first_name or "you"
 
-            if guess == secret:
-                chat_data["numguess_active"] = False
-                await update.message.reply_text(
-                    f"🎉 {name} got it! the number was {secret}!\nngl that was impressive 🔥"
-                )
-                return True
-            elif guess < secret:
-                await update.message.reply_text(f"higher 📈")
-                return True
-            else:
-                await update.message.reply_text(f"lower 📉")
-                return True
-        except ValueError:
-            pass   # Not a number, let normal handling continue
+        if not lower.isdigit():
+            chat_data.pop("numguess_active", None)
+            chat_data.pop("numguess_secret", None)
+            return False
 
-    # ── Word chain game ────────────────────────────────────────────────────
-    if chat_data.get("wordchain_active"):
-        words = text.split()
-        if len(words) == 1:   # Single word responses only
-            word = words[0]
-            current = chat_data.get("wordchain_current", "")
-            used = chat_data.get("wordchain_used", set())
+        guess = int(lower)
+        secret = chat_data.get("numguess_secret", 50)
 
-            if not current:
-                return False
+        if guess == secret:
+            chat_data.pop("numguess_active", None)
+            chat_data.pop("numguess_secret", None)
 
-            if word in used:
-                await update.message.reply_text(f"❌ '{word}' already used 💀")
-                return True
-
-            if word[0] != current[-1]:
-                await update.message.reply_text(
-                    f"❌ word must start with '{current[-1].upper()}' not '{word[0].upper()}'"
-                )
-                return True
-
-            # Valid word
-            chat_data["wordchain_current"] = word
-            used.add(word)
-            chat_data["wordchain_used"] = used
-            await update.message.reply_text(f"✅ '{word}' — next word must start with '{word[-1].upper()}'")
+            await update.message.reply_text(
+                f"🎉 Correct! The number was {secret}."
+            )
             return True
+
+        elif guess < secret:
+            await update.message.reply_text("📈 Higher")
+            return True
+
+        else:
+            await update.message.reply_text("📉 Lower")
+            return True
+
+    # ------------------------
+    # Word Chain
+    # ------------------------
+    if chat_data.get("wordchain_active"):
+
+        words = lower.split()
+
+        # User clearly changed topic
+        if len(words) != 1:
+
+            chat_data.pop("wordchain_active", None)
+            chat_data.pop("wordchain_current", None)
+            chat_data.pop("wordchain_used", None)
+
+            return False
+
+        word = words[0]
+
+        # Ignore commands
+        if word.startswith("/"):
+            chat_data.pop("wordchain_active", None)
+            chat_data.pop("wordchain_current", None)
+            chat_data.pop("wordchain_used", None)
+            return False
+
+        current = chat_data.get("wordchain_current")
+
+        if not current:
+            return False
+
+        used = chat_data.get("wordchain_used", set())
+
+        if word in used:
+            await update.message.reply_text("❌ Already used.")
+            return True
+
+        expected = current[-1].lower()
+
+        if word[0].lower() != expected:
+            await update.message.reply_text(
+                f"❌ Word must start with '{expected.upper()}'."
+            )
+            return True
+
+        used.add(word)
+
+        chat_data["wordchain_used"] = used
+        chat_data["wordchain_current"] = word
+
+        await update.message.reply_text(
+            f"✅ Nice! Next word starts with '{word[-1].upper()}'."
+        )
+
+        return True
 
     return False
