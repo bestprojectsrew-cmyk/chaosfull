@@ -194,19 +194,18 @@ async def chat(
     only if every provider fails.
     """
     errors = []
+errors = []
 
-    for name, fn in _PROVIDERS:
-        if not _is_available(name):
-    logger.info(f"{name} cooling down...")
-    continue
-            logger.info(f"[providers] skipping {name} (in cooldown)")
-            continue
+for name, fn in _PROVIDERS:
+    if not _is_available(name):
+        logger.info(f"[providers] skipping {name} (in cooldown)")
+        continue
 
-        try:
-            result = await fn(messages, max_tokens, temperature, tier)
-            _mark_ok(name)
-            logger.info(f"[providers] {name} succeeded")
-            return result
+    try:
+        result = await fn(messages, max_tokens, temperature, tier)
+        _mark_ok(name)
+        logger.info(f"[providers] {name} succeeded")
+        return result
 
         except Exception as e:
             reason = str(e)
