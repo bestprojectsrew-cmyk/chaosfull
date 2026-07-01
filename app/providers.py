@@ -194,18 +194,17 @@ async def chat(
     only if every provider fails.
     """
     errors = []
-errors = []
 
-for name, fn in _PROVIDERS:
-    if not _is_available(name):
-        logger.info(f"[providers] skipping {name} (in cooldown)")
-        continue
+    for name, fn in _PROVIDERS:
+        if not _is_available(name):
+            logger.info(f"[providers] skipping {name} (in cooldown)")
+            continue
 
-    try:
-        result = await fn(messages, max_tokens, temperature, tier)
-        _mark_ok(name)
-        logger.info(f"[providers] {name} succeeded")
-        return result
+        try:
+            result = await fn(messages, max_tokens, temperature, tier)
+            _mark_ok(name)
+            logger.info(f"[providers] {name} succeeded")
+            return result
 
         except Exception as e:
             reason = str(e)
@@ -218,14 +217,13 @@ for name, fn in _PROVIDERS:
             if "429" in reason or "rate" in reason.lower() or "quota" in reason.lower():
                 _mark_failed(name, "rate_limited")
             else:
-    logger.warning(
-        f"[providers] {name} failed: {reason}"
-    )
+                logger.warning(f"[providers] {name} FAILED: {reason}")
 
     full_error = " | ".join(errors) if errors else "no providers configured"
     logger.error(f"[providers] ALL PROVIDERS FAILED: {full_error}")
+
     return (
-    "🧠 My AI brain is taking a short coffee break ☕.\n"
-    "All AI providers are temporarily busy.\n"
-    "Try again in a few moments."
-)
+        "🧠 My AI brain is taking a short coffee break ☕.\n"
+        "All AI providers are temporarily busy.\n"
+        "Try again in a few moments."
+    )
