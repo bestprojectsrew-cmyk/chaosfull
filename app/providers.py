@@ -47,7 +47,7 @@ OPENROUTER_MODELS = {
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
 _failures: dict[str, float] = {}
-_COOLDOWN = 60
+_COOLDOWN = 300
 
 
 def _is_available(name: str) -> bool:
@@ -78,10 +78,6 @@ async def _call_groq(messages: list[dict], max_tokens: int, temperature: float, 
 
     model = GROQ_MODELS.get(tier, GROQ_MODELS["default"])
     kwargs = dict(model=model, messages=messages, max_tokens=max_tokens, temperature=temperature)
-
-    if model.startswith("openai/gpt-oss"):
-        kwargs["reasoning_effort"] = "low"
-        kwargs["reasoning_format"] = "hidden"
 
     resp = await _groq.chat.completions.create(**kwargs)
     content = resp.choices[0].message.content
@@ -174,11 +170,16 @@ async def _call_openrouter(messages: list[dict], max_tokens: int, temperature: f
 
 # ── Router ────────────────────────────────────────────────────────────────────
 
-_PROVIDERS = [
-    ("groq",       _call_groq),
-    ("gemini",     _call_gemini),
-    ("openrouter", _call_openrouter),
-]
+_PROVIDERS = []
+
+if _groq:
+    _PROVIDERS.append(("groq", _call_groq))
+
+if _GEMINI_KEY:
+    _PROVIDERS.append(("gemini", _call_gemini))
+
+if _OR_KEY:
+    _PROVIDERS.append(("openrouter", _call_openrouter))
 
 
 async def chat(
@@ -220,4 +221,8 @@ async def chat(
 
     full_error = " | ".join(errors) if errors else "no providers configured"
     logger.error(f"[providers] ALL PROVIDERS FAILED: {full_error}")
-    raise RuntimeError(full_error)
+    return (
+    "🧠 My AI brain is taking a short coffee break ☕.\n"
+    "All AI providers are temporarily busy.\n"
+    "Try again in a few moments."
+)
