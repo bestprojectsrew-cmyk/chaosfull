@@ -47,7 +47,7 @@ OPENROUTER_MODELS = {
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
 _failures: dict[str, float] = {}
-_COOLDOWN = 300
+_COOLDOWN = 5
 
 
 def _is_available(name: str) -> bool:
@@ -197,6 +197,8 @@ async def chat(
 
     for name, fn in _PROVIDERS:
         if not _is_available(name):
+    logger.info(f"{name} cooling down...")
+    continue
             logger.info(f"[providers] skipping {name} (in cooldown)")
             continue
 
@@ -217,7 +219,9 @@ async def chat(
             if "429" in reason or "rate" in reason.lower() or "quota" in reason.lower():
                 _mark_failed(name, "rate_limited")
             else:
-                _mark_failed(name, reason[:150])
+    logger.warning(
+        f"[providers] {name} failed: {reason}"
+    )
 
     full_error = " | ".join(errors) if errors else "no providers configured"
     logger.error(f"[providers] ALL PROVIDERS FAILED: {full_error}")
