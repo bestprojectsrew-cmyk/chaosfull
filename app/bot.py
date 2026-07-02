@@ -30,9 +30,24 @@ from app.group_handler import (
     build_group_system_addition, _mark_replied,
 )
 from app.group_commands import (
-    cmd_ban, cmd_unban, cmd_kick, cmd_mute, cmd_unmute,
-    cmd_warn, cmd_warns, cmd_pin, cmd_couple, cmd_game,
-    cb_game, handle_game_messages,
+    cmd_ban,
+    cmd_unban,
+    cmd_kick,
+    cmd_mute,
+    cmd_unmute,
+    cmd_warn,
+    cmd_warns,
+    cmd_pin,
+    cmd_promote,
+    cmd_demote,
+    cmd_purge,
+    cmd_id,
+    cmd_userinfo,
+    cmd_chatinfo,
+    cmd_couple,
+    cmd_game,
+    cb_game,
+    handle_game_messages,
 )
 from app.typing_sim import simulate_typing
 
