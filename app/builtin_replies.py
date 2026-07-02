@@ -157,38 +157,108 @@ _NAME_TRIGGERS = re.compile(
 
 def get_builtin_reply(text: str) -> str | None:
     """
-    Check if message can be answered without AI.
-    Returns a reply string or None (meaning: use AI).
+    Smart builtin replies.
+
+    Only answer very simple social messages.
+    Everything else goes to the AI.
     """
+
     stripped = text.strip()
 
-    # Empty
     if not stripped:
-        return "..."
+        return None
 
-    # Identity questions — check FIRST before any filler detection
+    lower = stripped.lower()
+    words = stripped.split()
+
+    # Real conversations should ALWAYS go to AI
+    if (
+        len(words) >= 4
+        or "?" in stripped
+        or lower.startswith((
+            "what", "why", "how", "when", "where", "who",
+            "can ", "could ", "would ", "should ",
+            "please", "tell", "explain"
+        ))
+        or lower.startswith((
+            "nima", "nega", "qanday", "qachon", "kim",
+            "iltimos", "tushuntir"
+        ))
+        or lower.startswith((
+            "что", "почему", "как", "когда", "кто",
+            "объясни", "скажи"
+        ))
+    ):
+        return None
+
+    # Identity questions
     if _IDENTITY.search(stripped):
         return random.choice(_IDENTITY_REPLIES)
 
-    # Emoji only
-    if _EMOJI_PATTERN.match(stripped) and len(stripped) < 20:
-        return random.choice(_EMOJI_REPLIES)
-
     # Greetings
     if _GREETINGS.match(stripped):
-        return random.choice(_GREETING_REPLIES)
+        return random.choice([
+            "hey 👋",
+            "hello 😄",
+            "yo bro",
+            "what's good",
+            "heyy",
+            "sup 😎",
+            "hey, what's up?",
+            "yo 👀",
+            "good to see you 😄",
+            "wassup bro",
+        ])
 
     # Thanks
     if _THANKS.match(stripped):
-        return random.choice(_THANKS_REPLIES)
+        return random.choice([
+            "you're welcome 😄",
+            "anytime bro 🤝",
+            "no worries",
+            "glad I could help",
+            "of course",
+            "always bro",
+            "my pleasure",
+        ])
 
-    # Farewells
+    # Farewell
     if _FAREWELLS.match(stripped):
-        return random.choice(_FAREWELL_REPLIES)
+        return random.choice([
+            "take care 👋",
+            "later bro 😎",
+            "bye 👋",
+            "see ya",
+            "have a good one",
+        ])
 
-    # Filler
+    # Emoji only
+    if _EMOJI_PATTERN.match(stripped):
+        if random.random() < 0.30:
+            return random.choice([
+                "😂",
+                "😭😂",
+                "💀",
+                "LMAOO 😭",
+                "bro 💀",
+                "😭",
+            ])
+        return None
+
+    # Filler words
     if _FILLERS.match(stripped):
-        return random.choice(_FILLER_REPLIES)
+        # Only answer around 15% of the time
+        if random.random() < 0.15:
+            return random.choice([
+                "real 😂",
+                "fr",
+                "facts",
+                "same",
+                "ong",
+                "😂",
+                "true tho",
+            ])
+        return None
 
     return None
 
