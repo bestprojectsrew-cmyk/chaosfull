@@ -21,22 +21,27 @@ logger = logging.getLogger(__name__)
 # ── Jump-in probability per topic type ───────────────────────────────────────
 # These are the odds the bot spontaneously replies to an interesting message
 _JUMP_IN_ODDS = {
-    "debate":      0.60,   # arguments, opinions, "better", "worse", "goat"
-    "question":    0.45,   # someone asked the group something
-    "football":    0.55,   # football topics
-    "gaming":      0.50,   # gaming topics
-    "crypto":      0.50,   # crypto/money topics
-    "shocking":    0.65,   # "omg", "no way", "what the"
-    "funny":       0.40,   # lol, 😂, jokes
-    "challenge":   0.55,   # "bet", "i dare", "prove it"
-    "hot_take":    0.60,   # controversial opinions
-    "default":     0.08,   # anything else — low baseline
+    "debate":      0.75,   # arguments, opinions — bot loves these
+    "question":    0.65,   # someone asked the group something
+    "football":    0.70,   # football topics
+    "gaming":      0.65,   # gaming topics
+    "crypto":      0.65,   # crypto/money topics
+    "shocking":    0.75,   # "omg", "no way", "what the"
+    "funny":       0.55,   # lol, 😂, jokes
+    "challenge":   0.70,   # "bet", "i dare", "prove it"
+    "hot_take":    0.70,   # controversial opinions
+    "default":     0.18,   # anything else — raised so it actually jumps in
 }
 
 # ── Rate limiting per group ───────────────────────────────────────────────────
 # Prevents the bot from flooding a group
 _group_last_reply: dict[int, float] = {}
-_MIN_SECONDS_BETWEEN_REPLIES = 8   # don't reply more than once per 8 seconds per group
+
+# ── Message counter per group ─────────────────────────────────────────────────
+# Guarantees bot jumps in at least every MAX_SILENCE messages
+_group_msg_count: dict[int, int] = {}
+_MAX_SILENCE = 25   # after this many messages with no jump-in, force one
+_MIN_SECONDS_BETWEEN_REPLIES = 25  # spontaneous jump-ins: at most once per 25s per group
 
 # ── Recent message buffer per group ──────────────────────────────────────────
 # Stores last 10 messages per group for context (in memory, not DB)
@@ -119,19 +124,33 @@ def should_jump_in(
     if is_reply:
         return True, "reply"
 
-    # Rate limit check — only applies to spontaneous jump-ins, not mentions/name calls
+    # Rate limit check — only applies to spontaneous jump-ins
     if _is_rate_limited(chat_id):
+        _group_msg_count[chat_id] = _group_msg_count.get(chat_id, 0) + 1
+        # Even if rate-limited, force jump-in after MAX_SILENCE messages
+        if _group_msg_count.get(chat_id, 0) >= _MAX_SILENCE:
+            _group_msg_count[chat_id] = 0
+            return True, "jump_in"
         return False, "skip"
+
+    # Increment message counter
+    _group_msg_count[chat_id] = _group_msg_count.get(chat_id, 0) + 1
+
+    # Force jump-in if been silent too long
+    if _group_msg_count[chat_id] >= _MAX_SILENCE:
+        _group_msg_count[chat_id] = 0
+        return True, "jump_in"
 
     # Detect topic and roll dice
     topic = _detect_topic(text)
     odds  = _JUMP_IN_ODDS.get(topic, _JUMP_IN_ODDS["default"])
 
-    # Short messages with no substance — lower the odds further
-    if len(text.split()) < 3:
-        odds *= 0.3
+    # Short messages — slight penalty but not huge
+    if len(text.split()) < 2:
+        odds *= 0.5
 
     if random.random() < odds:
+        _group_msg_count[chat_id] = 0   # reset counter when jumping in
         return True, "jump_in"
 
     return False, "skip"
