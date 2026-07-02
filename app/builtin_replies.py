@@ -1,181 +1,111 @@
 """
-builtin_replies.py — Instant replies that never touch an AI provider.
+builtin_replies.py
 
-Used for:
-- Greetings (hi, hello, salom, etc.)
-- Thanks / farewells
-- Emoji-only messages
-- Very short filler messages (ok, lol, bro)
-- Bot identity questions (who made you, what model, etc.)
+Very lightweight replies that do NOT use AI.
 
-This cuts provider usage significantly for high-traffic groups
-where many messages are just social filler.
+Only answers:
+- thanks
+- goodbye
+- identity questions
+
+Everything else returns None so the main group logic
+can decide whether to ignore the message or call AI.
 """
 
-import re
 import random
+import re
 
-# ── Greeting patterns ─────────────────────────────────────────────────────────
-_GREETINGS = re.compile(
-    r"^(hi+|hey+|hello+|yo+|sup|salom|привет|salut|hola|ciao|merhaba|"
-    r"assalomu alaykum|salam|ассалому алейкум|ку|здарова|даров|"
-    r"good morning|good evening|good night|gm|gn|gn bro)"
-    r"[\s!?.,🙂😊👋]*$",
-    re.IGNORECASE,
-)
+# ──────────────────────────────────────────────────────────────
+# Thanks
+# ──────────────────────────────────────────────────────────────
 
-_GREETING_REPLIES = [
-    "hey 👋",
-    "yo what's good",
-    "heyy",
-    "sup",
-    "ayo",
-    "heyyy what's up",
-    "yo 👀",
-    "what's good 🔥",
-    "hii",
-    "hey hey",
-]
-
-# ── Thanks patterns ───────────────────────────────────────────────────────────
 _THANKS = re.compile(
-    r"^(thanks?|thank you|thx|ty|rahmat|спасибо|merci|gracias|teşekkür|"
-    r"raxmat|tashakkur|danke|arigatou|감사)[\s!.,🙏]*$",
+    r"^(thanks?|thank you|thx|ty|rahmat|raxmat|спасибо|merci|gracias|teşekkür)[\s!.,🙏]*$",
     re.IGNORECASE,
 )
 
 _THANKS_REPLIES = [
     "np 🙌",
-    "anytime",
-    "of course",
+    "anytime bro",
     "no worries",
-    "👍",
-    "sure thing",
+    "of course",
     "glad i could help",
 ]
 
-# ── Farewell patterns ─────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Goodbye
+# ──────────────────────────────────────────────────────────────
+
 _FAREWELLS = re.compile(
-    r"^(bye+|goodbye|cya|see ya|later|peace|xayr|пока|au revoir|adios|"
-    r"tschüss|sayonara|gotta go|gtg|ttyl)[\s!.,👋]*$",
+    r"^(bye+|goodbye|cya|see ya|later|peace|xayr|пока|adios|gtg|ttyl)[\s!.,👋]*$",
     re.IGNORECASE,
 )
 
 _FAREWELL_REPLIES = [
     "later 👋",
-    "bye ✌️",
-    "see ya",
     "take care",
-    "peace out",
-    "catch you later",
+    "peace ✌️",
+    "see ya",
 ]
 
-# ── Filler messages ───────────────────────────────────────────────────────────
-_FILLERS = re.compile(
-    r"^(ok|okay|ok+|k|kk|lol|lmao|haha|😂|💀|🤣|bro|bruh|fr|ngl|"
-    r"same|true|facts|word|bet|aight|ight|yes|no|yep|nope|yup|nah|"
-    r"nice|cool|wow|damn|omg|wtf|oof|rip|gg|nvm|idk)[\s!?.,]*$",
-    re.IGNORECASE,
-)
+# ──────────────────────────────────────────────────────────────
+# Identity
+# ──────────────────────────────────────────────────────────────
 
-_FILLER_REPLIES = [
-    "😭",
-    "💀",
-    "fr tho",
-    "real",
-    "lmao",
-    "bro 💀",
-    "ong",
-    "exactly",
-    "same ngl",
-    "😂",
-    "lowkey",
-    "yeah bro",
-]
+BOT_OWNER = "@whozrew"
 
-# ── Emoji-only detection ──────────────────────────────────────────────────────
-_EMOJI_PATTERN = re.compile(
-    r"^[\U00010000-\U0010ffff\u2600-\u27BF\u2B00-\u2BFF\u1F000-\u1FFFF\s]+$"
-)
-
-_EMOJI_REPLIES = [
-    "😭",
-    "💀",
-    "🔥",
-    "fr",
-    "same energy",
-    "👀",
-    "bro 😭",
-    "lmaooo",
-]
-
-# ── Identity questions ────────────────────────────────────────────────────────
 _IDENTITY = re.compile(
-    r"\b(who made you|who built you|who created you|who is your (owner|creator|developer)|"
-    r"what (model|ai|llm) are you|are you (gpt|chatgpt|gemini|claude|llama)|"
-    r"what are you|tell me about yourself|your (owner|creator|dev)|"
-    r"kim yasadi|kim yaratdi|кто тебя создал|кто твой создатель|"
-    r"powered by|what powers you|your source)\b",
+    r"^(who are you|who made you|who built you|who created you|"
+    r"who is your owner|who is your creator|"
+    r"what ai are you|what model are you|"
+    r"tell me about yourself|powered by)\??$",
     re.IGNORECASE,
 )
-
-BOT_OWNER = "@whozrew"  # Update this to your actual username
 
 _IDENTITY_REPLIES = [
-    f"I'm Chaoz 😎\nMade by {BOT_OWNER}.\nPowered by multiple AI providers working together.",
-    f"Chaoz here 🤖\nBuilt by {BOT_OWNER}, running on a mix of AI models under the hood.",
-    f"that's me — Chaoz 😭\n{BOT_OWNER} built me. i run on several AI providers at once so i never go down.",
+    f"I'm Chaoz 😎\nMade by {BOT_OWNER}.",
+    f"Chaoz here 🤖\nBuilt by {BOT_OWNER}.",
+    f"I'm Chaoz.\nCreated by {BOT_OWNER}.",
 ]
 
-# ── Name-trigger detection (group mentions without @) ─────────────────────────
-_NAME_TRIGGERS = re.compile(
-    r"\b(chaoz?|chaos)\b",
+# ──────────────────────────────────────────────────────────────
+# Name trigger
+# ──────────────────────────────────────────────────────────────
+
+_NAME_TRIGGER = re.compile(
+    r"(^|\s)(chaoz)(\s|$|[!?.,])",
     re.IGNORECASE,
 )
 
+# ──────────────────────────────────────────────────────────────
+# Public functions
+# ──────────────────────────────────────────────────────────────
 
 def get_builtin_reply(text: str) -> str | None:
     """
-    Check if message can be answered without AI.
-    Returns a reply string or None (meaning: use AI).
+    Returns a lightweight reply or None.
     """
-    stripped = text.strip()
 
-    # Empty
-    if not stripped:
-        return "..."
+    text = text.strip()
 
-    # Identity questions — check FIRST before any filler detection
-    if _IDENTITY.search(stripped):
+    if not text:
+        return None
+
+    if _IDENTITY.match(text):
         return random.choice(_IDENTITY_REPLIES)
 
-    # Emoji only
-    if _EMOJI_PATTERN.match(stripped) and len(stripped) < 20:
-        return random.choice(_EMOJI_REPLIES)
-
-    # Greetings
-    if _GREETINGS.match(stripped):
-        return random.choice(_GREETING_REPLIES)
-
-    # Thanks
-    if _THANKS.match(stripped):
+    if _THANKS.match(text):
         return random.choice(_THANKS_REPLIES)
 
-    # Farewells
-    if _FAREWELLS.match(stripped):
+    if _FAREWELLS.match(text):
         return random.choice(_FAREWELL_REPLIES)
-
-    # Filler
-    if _FILLERS.match(stripped):
-        return random.choice(_FILLER_REPLIES)
 
     return None
 
 
 def is_name_trigger(text: str) -> bool:
     """
-    Returns True if the message contains 'chaoz', 'chaos', etc.
-    Used in groups to detect when someone is talking TO the bot
-    without using @mention.
+    True if user explicitly says Chaoz.
     """
-    return bool(_NAME_TRIGGERS.search(text))
+
+    return bool(_NAME_TRIGGER.search(text))
