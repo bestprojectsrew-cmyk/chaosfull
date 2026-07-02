@@ -30,7 +30,7 @@ _JUMP_IN_ODDS = {
     "funny":       0.55,   # lol, 😂, jokes
     "challenge":   0.70,   # "bet", "i dare", "prove it"
     "hot_take":    0.70,   # controversial opinions
-    "default":     0.18,   # anything else — raised so it actually jumps in
+    "default":     0.99,   # anything else — raised so it actually jumps in
 }
 
 # ── Rate limiting per group ───────────────────────────────────────────────────
@@ -40,8 +40,8 @@ _group_last_reply: dict[int, float] = {}
 # ── Message counter per group ─────────────────────────────────────────────────
 # Guarantees bot jumps in at least every MAX_SILENCE messages
 _group_msg_count: dict[int, int] = {}
-_MAX_SILENCE = 25   # after this many messages with no jump-in, force one
-_MIN_SECONDS_BETWEEN_REPLIES = 25  # spontaneous jump-ins: at most once per 25s per group
+_MAX_SILENCE = 5   # after this many messages with no jump-in, force one
+_MIN_SECONDS_BETWEEN_REPLIES = 8  # spontaneous jump-ins: at most once per 25s per group
 
 # ── Recent message buffer per group ──────────────────────────────────────────
 # Stores last 10 messages per group for context (in memory, not DB)
@@ -120,8 +120,10 @@ def should_jump_in(
     """
     # Always respond to direct triggers — these bypass rate limiter completely
     if is_mention:
+        logger.info("[GROUP] replying because mention")
         return True, "mention"
     if is_reply:
+        logger.info("[GROUP] replying because reply")
         return True, "reply"
 
     # Rate limit check — only applies to spontaneous jump-ins
@@ -131,6 +133,7 @@ def should_jump_in(
         if _group_msg_count.get(chat_id, 0) >= _MAX_SILENCE:
             _group_msg_count[chat_id] = 0
             return True, "jump_in"
+        logger.info("[GROUP] skipped")
         return False, "skip"
 
     # Increment message counter
@@ -151,8 +154,10 @@ def should_jump_in(
 
     if random.random() < odds:
         _group_msg_count[chat_id] = 0   # reset counter when jumping in
+        logger.info("[GROUP] jumping into conversation")
         return True, "jump_in"
 
+    logger.info("[GROUP] skipped")
     return False, "skip"
 
 
