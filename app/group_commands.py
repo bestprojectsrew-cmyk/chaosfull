@@ -296,6 +296,122 @@ async def cmd_pin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except BadRequest as e:
         await update.message.reply_text(f"couldn't pin: {e.message}")
 
+# ── /id ───────────────────────────────────────────────────────────────────
+
+async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = (
+        f"🆔 User ID: `{update.effective_user.id}`\n"
+        f"💬 Chat ID: `{update.effective_chat.id}`"
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
+
+# ── /chatinfo ───────────────────────────────────────────────────────────────────
+
+async def cmd_chatinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+
+    text = (
+        f"📊 Chat Information\n\n"
+        f"Name: {chat.title}\n"
+        f"ID: {chat.id}\n"
+        f"Type: {chat.type}"
+    )
+
+    await update.message.reply_text(text)
+
+
+# ── /userinfo ───────────────────────────────────────────────────────────────────
+
+async def cmd_userinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.reply_to_message:
+        await update.message.reply_text("Reply to someone's message.")
+        return
+
+    user = update.message.reply_to_message.from_user
+
+    member = await context.bot.get_chat_member(
+        update.effective_chat.id,
+        user.id,
+    )
+
+    text = (
+        f"👤 User Info\n\n"
+        f"Name: {user.full_name}\n"
+        f"Username: @{user.username if user.username else 'None'}\n"
+        f"ID: {user.id}\n"
+        f"Status: {member.status}"
+    )
+
+    await update.message.reply_text(text)
+
+
+# ── /promote ───────────────────────────────────────────────────────────────────
+
+async def cmd_promote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        return await update.message.reply_text("Admins only.")
+
+    if not update.message.reply_to_message:
+        return await update.message.reply_text("Reply to a user.")
+
+    user = update.message.reply_to_message.from_user
+
+    await context.bot.promote_chat_member(
+        chat_id=update.effective_chat.id,
+        user_id=user.id,
+        can_delete_messages=True,
+        can_restrict_members=True,
+        can_pin_messages=True,
+    )
+
+    await update.message.reply_text(f"✅ Promoted {user.full_name}")
+
+
+# ── /demote ───────────────────────────────────────────────────────────────────
+
+async def cmd_demote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        return await update.message.reply_text("Admins only.")
+
+    if not update.message.reply_to_message:
+        return await update.message.reply_text("Reply to a user.")
+
+    user = update.message.reply_to_message.from_user
+
+    await context.bot.promote_chat_member(
+        chat_id=update.effective_chat.id,
+        user_id=user.id,
+        can_manage_chat=False,
+        can_delete_messages=False,
+        can_restrict_members=False,
+        can_promote_members=False,
+        can_change_info=False,
+        can_invite_users=False,
+        can_pin_messages=False,
+    )
+
+    await update.message.reply_text(f"⬇️ Demoted {user.full_name}")
+
+
+# ── /purge ───────────────────────────────────────────────────────────────────
+
+async def cmd_purge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        return
+
+    if not update.message.reply_to_message:
+        return await update.message.reply_text("Reply to the first message.")
+
+    start = update.message.reply_to_message.message_id
+    end = update.message.message_id
+
+    for mid in range(start, end + 1):
+        try:
+            await context.bot.delete_message(update.effective_chat.id, mid)
+        except Exception:
+            pass
+
 
 # ── /couple ───────────────────────────────────────────────────────────────────
 
