@@ -286,7 +286,7 @@ async def chat(
     logger.error(f"[providers] ALL PROVIDERS FAILED: {full_error}")
 
     return (
-        "🧠 My AI brain is taking a short coffee break ☕.\n"
-        "All AI providers are temporarily busy.\n"
-        "Try again in a few moments."
+        "I am taking a short coffee break ☕.\n"
+        "Other users are tryna cook me by overloading.\n"
+        "Try again in a few moments dude."
     )
