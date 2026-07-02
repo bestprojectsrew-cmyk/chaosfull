@@ -392,8 +392,8 @@ def build_application() -> Application:
 
     # ── Private chat only ─────────────────────────────────────────────────────
     private_filter = filters.ChatType.PRIVATE
-    app.add_handler(CommandHandler("panel", cmd_panel, filters=private_filter))
-    app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
+    # app.add_handler(CommandHandler("panel", cmd_panel, filters=private_filter))
+    # app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
 
     # ── Group-only commands ────────────────────────────────────────────────────
     group_filter = filters.ChatType.GROUPS
