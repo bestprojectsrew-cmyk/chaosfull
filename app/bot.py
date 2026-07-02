@@ -2,6 +2,7 @@
 bot.py — Telegram bot: all handlers, commands, proactive messages.
 """
 import os
+import re
 import asyncio
 import logging
 from datetime import datetime
@@ -30,24 +31,16 @@ from app.group_handler import (
     build_group_system_addition, _mark_replied,
 )
 from app.group_commands import (
-    cmd_ban,
-    cmd_unban,
-    cmd_kick,
-    cmd_mute,
-    cmd_unmute,
-    cmd_warn,
-    cmd_warns,
-    cmd_pin,
-    cmd_promote,
-    cmd_demote,
-    cmd_purge,
-    cmd_id,
-    cmd_userinfo,
-    cmd_chatinfo,
-    cmd_couple,
-    cmd_game,
-    cb_game,
-    handle_game_messages,
+    cmd_ban, cmd_unban, cmd_kick, cmd_mute, cmd_unmute,
+    cmd_warn, cmd_warns, cmd_pin, cmd_couple, cmd_game,
+    cb_game, handle_game_messages,
+    cmd_promote, cmd_demote, cmd_purge, cmd_lock, cmd_unlock,
+    cmd_slowmode, cmd_id, cmd_userinfo, cmd_chatinfo,
+    cmd_filter, cmd_delfilter, cmd_filters,
+    cmd_savenote, cmd_getnote, cmd_delnote, cmd_notes,
+    handle_hashtag_note, handle_filter_trigger,
+    cmd_join, cmd_leave, cmd_players, cmd_stopgame,
+    cb_tod, cb_wyr,
 )
 from app.typing_sim import simulate_typing
 
@@ -68,6 +61,15 @@ async def _send(update: Update, context, text: str) -> None:
         for chunk in [text[i:i+4096] for i in range(0, len(text), 4096)]:
             await update.message.reply_text(chunk)
             await asyncio.sleep(0.2)
+
+
+# Detects the bot's name/nickname mentioned in a group message (used to
+# decide whether to jump into a conversation without an explicit @mention).
+_NAME_TRIGGER_RE = re.compile(r"\b(chaos|chaoz)\b", re.IGNORECASE)
+
+
+def is_name_trigger(text: str) -> bool:
+    return bool(_NAME_TRIGGER_RE.search(text))
 
 
 # ── /start ────────────────────────────────────────────────────────────────────
@@ -230,6 +232,25 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"facts i know: {len(mem.get('facts', []))}\n"
         f"here since: {db_user.created_at.strftime('%Y-%m-%d')}"
     )
+
+
+# ── /panel (admin panel — placeholder) ──────────────────────────────────────
+# NOTE: cmd_panel / cb_panel were registered in build_application() but never
+# had an implementation anywhere, and bot.py never attempted to import them
+# from group_commands.py either — they look like they belong to a separate,
+# not-yet-provided admin panel module rather than the group-commands mismatch
+# this pass was scoped to fix. Minimal stubs are added here just so the app
+# starts cleanly with zero NameErrors; swap these out once the real panel
+# module exists.
+
+async def cmd_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🎛 admin panel is coming soon — this feature isn't wired up yet.")
+
+
+async def cb_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("🎛 admin panel is coming soon — this feature isn't wired up yet.")
 
 
 # ── Main message handler ──────────────────────────────────────────────────────
@@ -407,8 +428,8 @@ def build_application() -> Application:
 
     # ── Private chat only ─────────────────────────────────────────────────────
     private_filter = filters.ChatType.PRIVATE
-    # app.add_handler(CommandHandler("panel", cmd_panel, filters=private_filter))
-    # app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
+    app.add_handler(CommandHandler("panel", cmd_panel, filters=private_filter))
+    app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
 
     # ── Group-only commands ────────────────────────────────────────────────────
     group_filter = filters.ChatType.GROUPS
@@ -425,21 +446,21 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("promote",   cmd_promote,   filters=group_filter))
     app.add_handler(CommandHandler("demote",    cmd_demote,    filters=group_filter))
     app.add_handler(CommandHandler("purge",     cmd_purge,     filters=group_filter))
-    # app.add_handler(CommandHandler("lock",      cmd_lock,      filters=group_filter))
-    # app.add_handler(CommandHandler("unlock",    cmd_unlock,    filters=group_filter))
-    # app.add_handler(CommandHandler("slowmode",  cmd_slowmode,  filters=group_filter))
+    app.add_handler(CommandHandler("lock",      cmd_lock,      filters=group_filter))
+    app.add_handler(CommandHandler("unlock",    cmd_unlock,    filters=group_filter))
+    app.add_handler(CommandHandler("slowmode",  cmd_slowmode,  filters=group_filter))
     app.add_handler(CommandHandler("id",        cmd_id,        filters=group_filter))
     app.add_handler(CommandHandler("userinfo",  cmd_userinfo,  filters=group_filter))
     app.add_handler(CommandHandler("chatinfo",  cmd_chatinfo,  filters=group_filter))
 
     # Filters + notes
-    # app.add_handler(CommandHandler("filter",    cmd_filter,    filters=group_filter))
-    # app.add_handler(CommandHandler("delfilter", cmd_delfilter, filters=group_filter))
-    # app.add_handler(CommandHandler("filters",   cmd_filters,   filters=group_filter))
-    # app.add_handler(CommandHandler("savenote",  cmd_savenote,  filters=group_filter))
-    # app.add_handler(CommandHandler("getnote",   cmd_getnote,   filters=group_filter))
-    # app.add_handler(CommandHandler("delnote",   cmd_delnote,   filters=group_filter))
-    # app.add_handler(CommandHandler("notes",     cmd_notes,     filters=group_filter))
+    app.add_handler(CommandHandler("filter",    cmd_filter,    filters=group_filter))
+    app.add_handler(CommandHandler("delfilter", cmd_delfilter, filters=group_filter))
+    app.add_handler(CommandHandler("filters",   cmd_filters,   filters=group_filter))
+    app.add_handler(CommandHandler("savenote",  cmd_savenote,  filters=group_filter))
+    app.add_handler(CommandHandler("getnote",   cmd_getnote,   filters=group_filter))
+    app.add_handler(CommandHandler("delnote",   cmd_delnote,   filters=group_filter))
+    app.add_handler(CommandHandler("notes",     cmd_notes,     filters=group_filter))
 
     # Fun group commands (visible in group menu)
     app.add_handler(CommandHandler("couple",    cmd_couple,    filters=group_filter))
