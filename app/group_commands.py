@@ -296,122 +296,6 @@ async def cmd_pin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except BadRequest as e:
         await update.message.reply_text(f"couldn't pin: {e.message}")
 
-# ── /id ───────────────────────────────────────────────────────────────────
-
-async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = (
-        f"🆔 User ID: `{update.effective_user.id}`\n"
-        f"💬 Chat ID: `{update.effective_chat.id}`"
-    )
-    await update.message.reply_text(msg, parse_mode="Markdown")
-
-
-# ── /chatinfo ───────────────────────────────────────────────────────────────────
-
-async def cmd_chatinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-
-    text = (
-        f"📊 Chat Information\n\n"
-        f"Name: {chat.title}\n"
-        f"ID: {chat.id}\n"
-        f"Type: {chat.type}"
-    )
-
-    await update.message.reply_text(text)
-
-
-# ── /userinfo ───────────────────────────────────────────────────────────────────
-
-async def cmd_userinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.reply_to_message:
-        await update.message.reply_text("Reply to someone's message.")
-        return
-
-    user = update.message.reply_to_message.from_user
-
-    member = await context.bot.get_chat_member(
-        update.effective_chat.id,
-        user.id,
-    )
-
-    text = (
-        f"👤 User Info\n\n"
-        f"Name: {user.full_name}\n"
-        f"Username: @{user.username if user.username else 'None'}\n"
-        f"ID: {user.id}\n"
-        f"Status: {member.status}"
-    )
-
-    await update.message.reply_text(text)
-
-
-# ── /promote ───────────────────────────────────────────────────────────────────
-
-async def cmd_promote(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await _is_admin(update, context):
-        return await update.message.reply_text("Admins only.")
-
-    if not update.message.reply_to_message:
-        return await update.message.reply_text("Reply to a user.")
-
-    user = update.message.reply_to_message.from_user
-
-    await context.bot.promote_chat_member(
-        chat_id=update.effective_chat.id,
-        user_id=user.id,
-        can_delete_messages=True,
-        can_restrict_members=True,
-        can_pin_messages=True,
-    )
-
-    await update.message.reply_text(f"✅ Promoted {user.full_name}")
-
-
-# ── /demote ───────────────────────────────────────────────────────────────────
-
-async def cmd_demote(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await _is_admin(update, context):
-        return await update.message.reply_text("Admins only.")
-
-    if not update.message.reply_to_message:
-        return await update.message.reply_text("Reply to a user.")
-
-    user = update.message.reply_to_message.from_user
-
-    await context.bot.promote_chat_member(
-        chat_id=update.effective_chat.id,
-        user_id=user.id,
-        can_manage_chat=False,
-        can_delete_messages=False,
-        can_restrict_members=False,
-        can_promote_members=False,
-        can_change_info=False,
-        can_invite_users=False,
-        can_pin_messages=False,
-    )
-
-    await update.message.reply_text(f"⬇️ Demoted {user.full_name}")
-
-
-# ── /purge ───────────────────────────────────────────────────────────────────
-
-async def cmd_purge(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await _is_admin(update, context):
-        return
-
-    if not update.message.reply_to_message:
-        return await update.message.reply_text("Reply to the first message.")
-
-    start = update.message.reply_to_message.message_id
-    end = update.message.message_id
-
-    for mid in range(start, end + 1):
-        try:
-            await context.bot.delete_message(update.effective_chat.id, mid)
-        except Exception:
-            pass
-
 
 # ── /couple ───────────────────────────────────────────────────────────────────
 
@@ -553,6 +437,11 @@ async def cb_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
     }
 
+    # Track which game is active + reset the player roster (used by
+    # /join, /leave, /players, /stopgame)
+    context.chat_data["gc_active_game"] = game
+    context.chat_data["gc_players"] = {}
+
     # For number guess, also store the secret number
     if game == "numguess":
         secret = random.randint(1, 100)
@@ -566,6 +455,30 @@ async def cb_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.chat_data["wordchain_used"] = {"chaos"}
 
     intro = game_intros.get(game, "game starting...")
+
+    # Truth or Dare — attach playable buttons right away
+    if game == "tod":
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🎯 Truth", callback_data="tod:truth"),
+            InlineKeyboardButton("🎲 Dare",  callback_data="tod:dare"),
+        ]])
+        await query.edit_message_text(intro, reply_markup=keyboard)
+        return
+
+    # Would You Rather — pick a dilemma and attach vote buttons
+    if game == "wyr":
+        a, b = random.choice(WYR_QUESTIONS)
+        context.chat_data["wyr_current"] = (a, b)
+        context.chat_data["wyr_votes"] = {"a": set(), "b": set()}
+        text = f"{intro}\n\n🅰️ {a}\n\n🅱️ {b}"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🅰️ Vote A", callback_data="wyr:a"),
+             InlineKeyboardButton("🅱️ Vote B", callback_data="wyr:b")],
+            [InlineKeyboardButton("🔄 New Question", callback_data="wyr:new")],
+        ])
+        await query.edit_message_text(text, reply_markup=keyboard)
+        return
+
     await query.edit_message_text(intro)
 
 
@@ -606,6 +519,12 @@ async def handle_game_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         chat_data.pop("wordchain_active", None)
         chat_data.pop("wordchain_current", None)
         chat_data.pop("wordchain_used", None)
+
+        chat_data.pop("wyr_current", None)
+        chat_data.pop("wyr_votes", None)
+
+        chat_data.pop("gc_active_game", None)
+        chat_data.pop("gc_players", None)
 
         await update.message.reply_text("✅ Game ended.")
         return True
@@ -875,3 +794,356 @@ async def cmd_chatinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Members: {count}\n"
         f"Username: @{chat.username}" if chat.username else f"ID: {chat.id}"
     )
+
+
+# ── Word filters ────────────────────────────────────────────────────────────
+#
+# Filters are stored per-chat in context.chat_data (in-memory, resets on
+# restart). Keyed by lowercase trigger phrase -> response text.
+#
+#   /filter trigger | response text
+#   /filter trigger              (reply to the message you want saved)
+#   /delfilter trigger
+#   /filters                     (list triggers)
+
+async def cmd_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        await update.message.reply_text("admins only 💀")
+        return
+
+    raw = " ".join(context.args) if context.args else ""
+
+    if "|" in raw:
+        trigger, response = raw.split("|", 1)
+        trigger = trigger.strip().lower()
+        response = response.strip()
+    elif update.message.reply_to_message and context.args:
+        trigger = raw.strip().lower()
+        response = update.message.reply_to_message.text or update.message.reply_to_message.caption or ""
+        if not response:
+            await update.message.reply_text("that message has no text to save as a filter")
+            return
+    else:
+        await update.message.reply_text(
+            "usage: /filter trigger | response\n"
+            "or reply to a message with /filter trigger"
+        )
+        return
+
+    if not trigger:
+        await update.message.reply_text("need a trigger word")
+        return
+
+    filters_map = context.chat_data.setdefault("filters", {})
+    filters_map[trigger] = response
+    await update.message.reply_text(f"✅ filter saved: \"{trigger}\"")
+
+
+async def cmd_delfilter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        await update.message.reply_text("admins only 💀")
+        return
+
+    if not context.args:
+        await update.message.reply_text("usage: /delfilter trigger")
+        return
+
+    trigger = " ".join(context.args).strip().lower()
+    filters_map = context.chat_data.setdefault("filters", {})
+    if trigger in filters_map:
+        del filters_map[trigger]
+        await update.message.reply_text(f"🗑 filter \"{trigger}\" removed")
+    else:
+        await update.message.reply_text("no filter by that name")
+
+
+async def cmd_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    filters_map = context.chat_data.get("filters", {})
+    if not filters_map:
+        await update.message.reply_text("no filters set in this chat")
+        return
+    lines = ["📋 active filters:\n"] + [f"• {t}" for t in sorted(filters_map)]
+    await update.message.reply_text("\n".join(lines))
+
+
+async def handle_filter_trigger(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check message text against saved filters. Returns True if a filter fired."""
+    if not update.message or not update.message.text:
+        return False
+
+    filters_map = context.chat_data.get("filters", {})
+    if not filters_map:
+        return False
+
+    text = update.message.text.lower()
+    for trigger, response in filters_map.items():
+        if trigger in text:
+            await update.message.reply_text(response)
+            return True
+    return False
+
+
+# ── Notes ────────────────────────────────────────────────────────────────────
+#
+# Notes are stored per-chat in context.chat_data (in-memory), keyed by
+# lowercase note name -> content. Retrieve with /getnote name or the
+# #notename hashtag shortcut.
+
+async def cmd_savenote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        await update.message.reply_text("admins only 💀")
+        return
+
+    raw = " ".join(context.args) if context.args else ""
+
+    if "|" in raw:
+        name, content = raw.split("|", 1)
+        name = name.strip().lower()
+        content = content.strip()
+    elif update.message.reply_to_message and context.args:
+        name = raw.strip().lower()
+        content = update.message.reply_to_message.text or update.message.reply_to_message.caption or ""
+        if not content:
+            await update.message.reply_text("that message has no text to save as a note")
+            return
+    else:
+        await update.message.reply_text(
+            "usage: /savenote name | content\n"
+            "or reply to a message with /savenote name"
+        )
+        return
+
+    if not name:
+        await update.message.reply_text("need a note name")
+        return
+
+    notes_map = context.chat_data.setdefault("notes", {})
+    notes_map[name] = content
+    await update.message.reply_text(f"📝 note saved: \"{name}\" (get it with #{name} or /getnote {name})")
+
+
+async def cmd_getnote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("usage: /getnote name")
+        return
+    name = " ".join(context.args).strip().lower()
+    notes_map = context.chat_data.get("notes", {})
+    if name in notes_map:
+        await update.message.reply_text(notes_map[name])
+    else:
+        await update.message.reply_text("no note by that name")
+
+
+async def cmd_delnote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _is_admin(update, context):
+        await update.message.reply_text("admins only 💀")
+        return
+    if not context.args:
+        await update.message.reply_text("usage: /delnote name")
+        return
+    name = " ".join(context.args).strip().lower()
+    notes_map = context.chat_data.setdefault("notes", {})
+    if name in notes_map:
+        del notes_map[name]
+        await update.message.reply_text(f"🗑 note \"{name}\" removed")
+    else:
+        await update.message.reply_text("no note by that name")
+
+
+async def cmd_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    notes_map = context.chat_data.get("notes", {})
+    if not notes_map:
+        await update.message.reply_text("no notes saved in this chat")
+        return
+    lines = ["📋 saved notes:\n"] + [f"• #{n}" for n in sorted(notes_map)]
+    lines.append("\nget one with #name or /getnote name")
+    await update.message.reply_text("\n".join(lines))
+
+
+async def handle_hashtag_note(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Handle #notename shortcut. Returns True if a note was found and sent."""
+    if not update.message or not update.message.text:
+        return False
+
+    text = update.message.text.strip()
+    if not text.startswith("#") or len(text) < 2:
+        return False
+
+    name = text[1:].split()[0].lower()
+    notes_map = context.chat_data.get("notes", {})
+    if name in notes_map:
+        await update.message.reply_text(notes_map[name])
+        return True
+    return False
+
+
+# ── Game roster: /join /leave /players /stopgame ────────────────────────────
+#
+# Works alongside cb_game, which sets chat_data["gc_active_game"] and resets
+# chat_data["gc_players"] whenever a game is started from the /game menu.
+
+async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_data = context.chat_data
+    game = chat_data.get("gc_active_game")
+    if not game:
+        await update.message.reply_text("no active game right now — start one with /game")
+        return
+
+    players = chat_data.setdefault("gc_players", {})
+    user = update.effective_user
+    if user.id in players:
+        await update.message.reply_text("you're already in 👍")
+        return
+
+    players[user.id] = user.first_name or user.username or str(user.id)
+    await update.message.reply_text(
+        f"✅ {players[user.id]} joined ({len(players)} player{'s' if len(players) != 1 else ''} in)"
+    )
+
+
+async def cmd_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_data = context.chat_data
+    players = chat_data.get("gc_players", {})
+    user = update.effective_user
+    if user.id not in players:
+        await update.message.reply_text("you're not in the current game")
+        return
+    name = players.pop(user.id)
+    await update.message.reply_text(f"👋 {name} left the game")
+
+
+async def cmd_players(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_data = context.chat_data
+    game = chat_data.get("gc_active_game")
+    players = chat_data.get("gc_players", {})
+    if not game:
+        await update.message.reply_text("no active game right now")
+        return
+    if not players:
+        await update.message.reply_text("no one's joined yet — /join to hop in")
+        return
+    lines = [f"🎮 players ({len(players)}):\n"] + [f"• {n}" for n in players.values()]
+    await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_stopgame(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_data = context.chat_data
+    was_active = any(
+        chat_data.get(k)
+        for k in ("gc_active_game", "numguess_active", "wordchain_active", "wyr_current")
+    )
+    if not was_active:
+        await update.message.reply_text("no active game to stop")
+        return
+
+    for key in (
+        "gc_active_game", "gc_players",
+        "numguess_active", "numguess_secret",
+        "wordchain_active", "wordchain_current", "wordchain_used",
+        "wyr_current", "wyr_votes",
+    ):
+        chat_data.pop(key, None)
+
+    await update.message.reply_text("🛑 game stopped")
+
+
+# ── Truth or Dare / Would You Rather content ─────────────────────────────────
+
+TRUTH_QUESTIONS = [
+    "what's the most embarrassing thing in your search history?",
+    "what's a lie you told that you never got caught for?",
+    "who in this chat would you trust with a secret?",
+    "what's the worst gift you've ever received?",
+    "what's your most unpopular opinion?",
+    "what's the last thing you lied about to your parents?",
+    "what app do you spend the most time on that you're not proud of?",
+]
+
+DARE_CHALLENGES = [
+    "send the last photo in your camera roll (no explanation)",
+    "type with your elbows for the next message",
+    "let the group pick your profile picture for the next hour",
+    "text your crush/ex \"hey\" and post the reply here",
+    "speak only in questions for the next 3 messages",
+    "send a voice message singing your favorite song's chorus",
+    "compliment 3 people in this chat right now",
+]
+
+WYR_QUESTIONS = [
+    ("have to sing everything you say for a week", "have to whisper everything you say for a week"),
+    ("be able to fly but only 3 feet off the ground", "be invisible but only when no one is looking"),
+    ("never use social media again", "never watch another movie or show again"),
+    ("always be 10 minutes late", "always be 20 minutes early"),
+    ("have unlimited money but no friends", "have amazing friends but be broke forever"),
+    ("lose all your memories from the past year", "never make a new memory again"),
+    ("be famous but broke", "be rich but unknown"),
+]
+
+
+# ── Truth or Dare callback ────────────────────────────────────────────────────
+
+async def cb_tod(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    choice = query.data.split(":", 1)[1]
+    player = query.from_user.first_name or query.from_user.username or "player"
+
+    if choice == "truth":
+        prompt = random.choice(TRUTH_QUESTIONS)
+        text = f"🎯 Truth for {player}:\n\n{prompt}"
+    else:
+        prompt = random.choice(DARE_CHALLENGES)
+        text = f"🎲 Dare for {player}:\n\n{prompt}"
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🎯 Truth", callback_data="tod:truth"),
+        InlineKeyboardButton("🎲 Dare",  callback_data="tod:dare"),
+    ]])
+    await query.edit_message_text(text, reply_markup=keyboard)
+
+
+# ── Would You Rather callback ─────────────────────────────────────────────────
+
+async def cb_wyr(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    choice = query.data.split(":", 1)[1]
+    chat_data = context.chat_data
+
+    if choice == "new":
+        await query.answer()
+        a, b = random.choice(WYR_QUESTIONS)
+        chat_data["wyr_current"] = (a, b)
+        chat_data["wyr_votes"] = {"a": set(), "b": set()}
+        text = f"🎭 Would You Rather\n\n🅰️ {a}\n\n🅱️ {b}"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🅰️ Vote A", callback_data="wyr:a"),
+             InlineKeyboardButton("🅱️ Vote B", callback_data="wyr:b")],
+            [InlineKeyboardButton("🔄 New Question", callback_data="wyr:new")],
+        ])
+        await query.edit_message_text(text, reply_markup=keyboard)
+        return
+
+    current = chat_data.get("wyr_current")
+    if not current:
+        await query.answer("no active round — start a new one", show_alert=True)
+        return
+
+    votes = chat_data.setdefault("wyr_votes", {"a": set(), "b": set()})
+    uid = query.from_user.id
+    votes["a"].discard(uid)
+    votes["b"].discard(uid)
+    votes[choice].add(uid)
+    await query.answer(f"you voted {choice.upper()}")
+
+    a, b = current
+    text = (
+        f"🎭 Would You Rather\n\n"
+        f"🅰️ {a}  ({len(votes['a'])} votes)\n\n"
+        f"🅱️ {b}  ({len(votes['b'])} votes)"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🅰️ Vote A", callback_data="wyr:a"),
+         InlineKeyboardButton("🅱️ Vote B", callback_data="wyr:b")],
+        [InlineKeyboardButton("🔄 New Question", callback_data="wyr:new")],
+    ])
+    await query.edit_message_text(text, reply_markup=keyboard)
