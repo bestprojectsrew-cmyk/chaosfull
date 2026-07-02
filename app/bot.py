@@ -433,13 +433,13 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("chatinfo",  cmd_chatinfo,  filters=group_filter))
 
     # Filters + notes
-    app.add_handler(CommandHandler("filter",    cmd_filter,    filters=group_filter))
-    app.add_handler(CommandHandler("delfilter", cmd_delfilter, filters=group_filter))
-    app.add_handler(CommandHandler("filters",   cmd_filters,   filters=group_filter))
-    app.add_handler(CommandHandler("savenote",  cmd_savenote,  filters=group_filter))
-    app.add_handler(CommandHandler("getnote",   cmd_getnote,   filters=group_filter))
-    app.add_handler(CommandHandler("delnote",   cmd_delnote,   filters=group_filter))
-    app.add_handler(CommandHandler("notes",     cmd_notes,     filters=group_filter))
+    # app.add_handler(CommandHandler("filter",    cmd_filter,    filters=group_filter))
+    # app.add_handler(CommandHandler("delfilter", cmd_delfilter, filters=group_filter))
+    # app.add_handler(CommandHandler("filters",   cmd_filters,   filters=group_filter))
+    # app.add_handler(CommandHandler("savenote",  cmd_savenote,  filters=group_filter))
+    # app.add_handler(CommandHandler("getnote",   cmd_getnote,   filters=group_filter))
+    # app.add_handler(CommandHandler("delnote",   cmd_delnote,   filters=group_filter))
+    # app.add_handler(CommandHandler("notes",     cmd_notes,     filters=group_filter))
 
     # Fun group commands (visible in group menu)
     app.add_handler(CommandHandler("couple",    cmd_couple,    filters=group_filter))
