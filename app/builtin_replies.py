@@ -26,7 +26,7 @@ _GREETINGS = re.compile(
 )
 
 _GREETING_REPLIES = [
-    "hey 👋",
+    "hey 👋 my chigga nigga",
     "yo nigga what's good",
     "heyy",
     "sup",
@@ -81,7 +81,7 @@ _FAREWELLS = re.compile(
 _FAREWELL_REPLIES = [
     "later 👋",
     "bye ✌️",
-    "see ya",
+    "see ya, dumbass",
     "take care",
     "peace out, sybau",
     "catch you later",
@@ -231,7 +231,7 @@ def get_builtin_reply(text: str) -> str | None:
     # Farewell
     if _FAREWELLS.match(stripped):
         return random.choice([
-            "take care 👋",
+            "take care 👋chigga nigga",
             "later bro 😎",
             "bye 👋",
             "see ya",
