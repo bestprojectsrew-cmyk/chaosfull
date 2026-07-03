@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 # ── Jump-in probability per topic type ───────────────────────────────────────
 # These are the odds the bot spontaneously replies to an interesting message
 _JUMP_IN_ODDS = {
-    "debate":      0.25,   # arguments, opinions — bot loves these
-    "question":    0.25,   # someone asked the group something
-    "football":    0.20,   # football topics
-    "gaming":      0.15,   # gaming topics
-    "crypto":      0.15,   # crypto/money topics
-    "shocking":    0.25,   # "omg", "no way", "what the"
-    "funny":       0.15,   # lol, 😂, jokes
-    "challenge":   0.20,   # "bet", "i dare", "prove it"
-    "hot_take":    0.20,   # controversial opinions
-    "default":     0.20,   # anything else — raised so it actually jumps in
+    "debate":      0.15,   # arguments, opinions — bot loves these
+    "question":    0.15,   # someone asked the group something
+    "football":    0.10,   # football topics
+    "gaming":      0.10,   # gaming topics
+    "crypto":      0.10,   # crypto/money topics
+    "shocking":    0.15,   # "omg", "no way", "what the"
+    "funny":       0.10,   # lol, 😂, jokes
+    "challenge":   0.10,   # "bet", "i dare", "prove it"
+    "hot_take":    0.10,   # controversial opinions
+    "default":     0.10,   # anything else — raised so it actually jumps in
 }
 
 # ── Rate limiting per group ───────────────────────────────────────────────────
@@ -178,8 +178,8 @@ def build_group_system_addition(
         f"\n[GROUP CHAT: {group_name}]\n"
         f"You are in a group chat. Multiple people are talking.\n"
         f"Mirror the group's tone EXACTLY — how they write, you write.\n"
-        f"If they're being casual and chaotic, match that. If someone's being serious, match that.\n"
-        f"Read the recent messages above and adapt your energy to fit in naturally.\n"
+        f"If they're being casual and chaotic, match that. If someone's being serious, match that. If someone is being rude to you, curse him with bad words\n"
+        f"Read the recent messages above and adapt your energy to fit in naturally and act like group member.\n"
         f"Keep replies SHORT in groups — 1-3 sentences usually. Groups are fast-paced.\n"
         f"Don't address the whole group unless relevant. Reply to whoever triggered you."
     )
