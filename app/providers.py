@@ -47,7 +47,7 @@ OPENROUTER_MODELS = {
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
 _failures: dict[str, float] = {}
-_COOLDOWN = 5
+_COOLDOWN = 2
 
 
 def _is_available(name: str) -> bool:
@@ -286,7 +286,7 @@ async def chat(
     logger.error(f"[providers] ALL PROVIDERS FAILED: {full_error}")
 
     return (
-        "🧠 My AI brain is taking a short coffee break ☕.\n"
-        "All AI providers are temporarily busy.\n"
-        "Try again in a few moments."
+        "I am taking a short coffee break ☕.\n"
+        "A lot of niggas are using me relentlessly.\n"
+        "Try again in a few moments or never."
     )
