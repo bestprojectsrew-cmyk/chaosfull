@@ -403,6 +403,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
        user_memory=updated_memory,
     group_context_block=group_context_block,
     is_owner=is_owner(user.id),
+    owner_username=user.username or "",
+    owner_name=user.first_name or "",
     )
 
     # Save and send
