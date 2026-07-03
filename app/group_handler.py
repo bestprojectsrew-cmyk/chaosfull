@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 # ── Jump-in probability per topic type ───────────────────────────────────────
 # These are the odds the bot spontaneously replies to an interesting message
 _JUMP_IN_ODDS = {
-    "debate":      0.75,   # arguments, opinions — bot loves these
-    "question":    0.65,   # someone asked the group something
-    "football":    0.70,   # football topics
-    "gaming":      0.65,   # gaming topics
-    "crypto":      0.65,   # crypto/money topics
-    "shocking":    0.75,   # "omg", "no way", "what the"
-    "funny":       0.55,   # lol, 😂, jokes
-    "challenge":   0.70,   # "bet", "i dare", "prove it"
-    "hot_take":    0.70,   # controversial opinions
-    "default":     0.99,   # anything else — raised so it actually jumps in
+    "debate":      0.25,   # arguments, opinions — bot loves these
+    "question":    0.25,   # someone asked the group something
+    "football":    0.20,   # football topics
+    "gaming":      0.15,   # gaming topics
+    "crypto":      0.15,   # crypto/money topics
+    "shocking":    0.25,   # "omg", "no way", "what the"
+    "funny":       0.15,   # lol, 😂, jokes
+    "challenge":   0.20,   # "bet", "i dare", "prove it"
+    "hot_take":    0.20,   # controversial opinions
+    "default":     0.20,   # anything else — raised so it actually jumps in
 }
 
 # ── Rate limiting per group ───────────────────────────────────────────────────
@@ -40,8 +40,8 @@ _group_last_reply: dict[int, float] = {}
 # ── Message counter per group ─────────────────────────────────────────────────
 # Guarantees bot jumps in at least every MAX_SILENCE messages
 _group_msg_count: dict[int, int] = {}
-_MAX_SILENCE = 5   # after this many messages with no jump-in, force one
-_MIN_SECONDS_BETWEEN_REPLIES = 8  # spontaneous jump-ins: at most once per 25s per group
+_MAX_SILENCE = 30   # after this many messages with no jump-in, force one
+_MIN_SECONDS_BETWEEN_REPLIES = 25  # spontaneous jump-ins: at most once per 25s per group
 
 # ── Recent message buffer per group ──────────────────────────────────────────
 # Stores last 10 messages per group for context (in memory, not DB)
