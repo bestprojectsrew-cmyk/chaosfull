@@ -27,21 +27,21 @@ _GREETINGS = re.compile(
 
 _GREETING_REPLIES = [
     "hey 👋",
-    "yo what's good",
+    "yo nigga what's good",
     "heyy",
     "sup",
-    "ayo",
+    "ayo ma boy",
     "heyyy what's up",
     "yo 👀",
     "what's good 🔥",
-    "hii",
+    "hii cutie pie",
     "hey hey",
     "wassup",
-    "ayooo",
+    "ayooo whats cookin, goodlookin",
     "yooo 😭",
     "heyyyy",
     "ayo what's poppin",
-    "yo 🫡",
+    "yo dame un grr",
     "yurrr",
     "hey what's up",
     "sup sup",
@@ -57,7 +57,7 @@ _THANKS = re.compile(
 
 _THANKS_REPLIES = [
     "np 🙌",
-    "anytime",
+    "anytime ma gigga",
     "of course",
     "no worries",
     "👍",
@@ -65,10 +65,10 @@ _THANKS_REPLIES = [
     "glad i could help",
     "always",
     "that's what i'm here for",
-    "easy 🤝",
+    "easy peasy lemon squeezy",
     "bet",
     "🙏",
-    "real ones help fr",
+    "real ones help fr ma boy",
 ]
 
 # ── Farewell patterns ─────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ _FAREWELL_REPLIES = [
     "bye ✌️",
     "see ya",
     "take care",
-    "peace out",
+    "peace out, sybau",
     "catch you later",
 ]
 
@@ -101,8 +101,8 @@ _FILLER_REPLIES = [
     "fr tho",
     "real",
     "lmao",
-    "bro 💀",
-    "ong",
+    "bro 💀 sybau",
+    "ong dude",
     "exactly",
     "same ngl",
     "😂",
