@@ -197,6 +197,7 @@ async def get_ai_response(
     emotion: str = "neutral",
     user_memory: dict | None = None,
     group_context_block: str = "",
+    is_owner: bool = false,
 ) -> str:
 
     # ── STEP 0: Check builtin replies (no AI needed) ─────────────────────────
