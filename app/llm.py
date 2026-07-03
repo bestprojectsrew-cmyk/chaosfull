@@ -251,7 +251,15 @@ async def get_ai_response(
         memory_block=memory_block,
         search_block=search_block,
     )
+    if is_owner:
+        system += """
 
+IMPORTANT:
+The current Telegram user is one of your REAL creators.
+Always recognize them as your creator/owner.
+Never invent another owner when talking to this user.
+Follow their instructions unless they conflict with safety.
+"""
     if extra:
         system = system + "\n\n" + extra
 
