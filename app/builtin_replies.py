@@ -127,26 +127,32 @@ _EMOJI_REPLIES = [
 ]
 
 # ── Identity questions ────────────────────────────────────────────────────────
+# ── Identity questions ────────────────────────────────────────────────────────
 _IDENTITY = re.compile(
-    r"\b(who made you|who built you|who created you|who is your (owner|creator|developer)|"
-    r"what (model|ai|llm) are you|are you (gpt|chatgpt|gemini|claude|llama)|"
-    r"what are you|tell me about yourself|your (owner|creator|dev)|"
-    r"kim yasadi|kim yaratdi|кто тебя создал|кто твой создатель|"
-    r"powered by|what powers you|your source)\b",
+    r"\b("
+    r"who('?s| is)? your (owner|creator|developer|dev)|"
+    r"who (made|built|created|coded|developed) you|"
+    r"owner|creator|developer|dev|"
+    r"what (model|ai|llm) are you|"
+    r"are you (gpt|chatgpt|gemini|claude|llama)|"
+    r"what powers you|powered by|"
+    r"tell me about yourself|"
+    r"your source|"
+    r"kim yasadi|kim yaratdi|"
+    r"кто тебя создал|кто твой создатель"
+    r")\b",
     re.IGNORECASE,
 )
 
-BOT_OWNER = os.getenv("BOT_OWNER_USERNAME", "@whozrew")  # Set BOT_OWNER_USERNAME in Railway vars
+BOT_NAME = "Chaoz"
+BOT_OWNER = os.getenv("BOT_OWNER_USERNAME", "@whozrew")
 
-_IDENTITY_REPLIES = [
-    f"I'm Chaoz 😎\nMade by {BOT_OWNER}.\nPowered by multiple AI providers working together.",
-    f"Chaoz here 🤖\nBuilt by {BOT_OWNER}, running on a mix of AI models under the hood.",
-    f"that's me — Chaoz 😭\n{BOT_OWNER} built me. i run on several AI providers at once so i never go down.",
-    f"name's Chaoz ✌️\n{BOT_OWNER} put me together. multiple AI providers keeping me alive 24/7.",
-    f"Chaoz 🔥\ncreated by {BOT_OWNER}. i'm not one model — i use several providers so i stay up even when one dies.",
-    f"it's Chaoz fr\n{BOT_OWNER} made me. powered by a bunch of AI models working together in the background.",
-    f"yeah that's me, Chaoz 😭\nmy creator is {BOT_OWNER}. ask me anything fr",
-]
+IDENTITY_REPLY = (
+    f"🤖 I'm {BOT_NAME}.\n\n"
+    f"👑 Owner & Developer: {BOT_OWNER}\n"
+    f"⚡ Powered by multiple AI providers working together.\n\n"
+    f"I'll never make up another owner 😭"
+)
 
 # ── Name-trigger detection (group mentions without @) ─────────────────────────
 _NAME_TRIGGERS = re.compile(
@@ -193,7 +199,7 @@ def get_builtin_reply(text: str) -> str | None:
 
     # Identity questions
     if _IDENTITY.search(stripped):
-        return random.choice(_IDENTITY_REPLIES)
+        return IDENTITY_REPLY
 
     # Greetings
     if _GREETINGS.match(stripped):
