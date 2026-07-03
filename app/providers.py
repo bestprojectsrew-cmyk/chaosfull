@@ -1,5 +1,5 @@
 """
-providers.py — LLM router: Groq → Gemini → OpenRouter, in that order.
+providers.py — LLM router: Groq → Gemini → OpenRouter → GitHub → Cerebras, in that order.
 
 Why this order:
   - Groq: fastest, most generous free tier (30 RPM / 14,400 RPD), primary.
@@ -11,6 +11,8 @@ Why this order:
     Hardcoding one specific free model (e.g. llama-3.3-70b:free) is risky —
     free models on OpenRouter rotate and disappear without notice. The
     auto-router avoids that failure mode entirely.
+  - GitHub Models: fallback 4, free with GitHub Personal Access Token.
+  - Cerebras: fallback 5, hyper-fast inference on specialized hardware.
 
 Every failure is logged with the exact provider + reason, so a dead chain
 is always visible in Railway logs instead of producing a silent
@@ -43,6 +45,12 @@ OPENROUTER_MODELS = {
     "default": "openrouter/free",
     "fast":    "openrouter/free",
     "memory":  "openrouter/free",
+}
+
+CEREBRAS_MODELS = {
+    "default": "llama-3.3-70b",
+    "fast":    "llama-3.3-70b",
+    "memory":  "llama-3.3-70b",
 }
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
@@ -198,17 +206,22 @@ async def _call_github(messages: list[dict], max_tokens: int, temperature: float
 # ── Cerebras (fallback 5 — free tier, very fast) ──────────────────────────────
 
 _CEREBRAS_KEY = os.getenv("CEREBRAS_API_KEY", "")
+if not _CEREBRAS_KEY:
+    logger.info("[providers] CEREBRAS_API_KEY not set — Cerebras fallback disabled")
 
 
 async def _call_cerebras(messages: list[dict], max_tokens: int, temperature: float, tier: str) -> str:
     if not _CEREBRAS_KEY:
         raise RuntimeError("cerebras_not_configured")
+
+    model = CEREBRAS_MODELS.get(tier, CEREBRAS_MODELS["default"])
+
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(
             "https://api.cerebras.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {_CEREBRAS_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama3.1-70b",
+                "model": model,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
@@ -249,7 +262,7 @@ async def chat(
     tier: str = "default",
 ) -> str:
     """
-    Try Groq -> Gemini -> OpenRouter in order. Logs every attempt and
+    Try Groq -> Gemini -> OpenRouter -> GitHub -> Cerebras in order. Logs every attempt and
     failure with the exact reason. Raises RuntimeError with full detail
     only if every provider fails.
     """
