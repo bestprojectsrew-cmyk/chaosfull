@@ -5,6 +5,7 @@ import os
 import asyncio
 import logging
 from datetime import datetime
+from app.owner import is_owner
 
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -393,14 +394,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Generate response
     reply = await get_ai_response(
-        user_message=text,
-        history=history,
-        lang_code=lang_code,
-        lang_label=lang_label,
-        personality=personality,
-        emotion=emotion,
-        user_memory=updated_memory,
-        group_context_block=group_context_block,
+       user_message=text,
+       history=history,
+       lang_code=lang_code,
+       lang_label=lang_label,
+       personality=personality,
+       emotion=emotion,
+       user_memory=updated_memory,
+    group_context_block=group_context_block,
+    is_owner=is_owner(user.id),
     )
 
     # Save and send
