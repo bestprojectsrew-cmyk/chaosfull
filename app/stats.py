@@ -185,7 +185,6 @@ async def cmd_users(update, context):
     if not is_owner(update.effective_user.id):
         await update.message.reply_text("owner only 🔒")
         return
-
     await update.message.reply_text(get_stats_text())
 
 
