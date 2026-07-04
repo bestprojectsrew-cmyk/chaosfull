@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # ── Model choices per task type ───────────────────────────────────────────────
 GROQ_MODELS = {
-    "default": "openai/gpt-oss-20b",
+    "default": "llama-3.3-70b-versatile",
     "fast": "llama-3.1-8b-instant",
     "memory": "llama-3.1-8b-instant",
 }
