@@ -274,7 +274,7 @@ recognize THIS person specifically.
 
 Never confuse them with another creator.
 
-Whwn they set specific mode, try your best to match that mode, for example, if you're set to boyfriend mode, be the most flirty and boyfriend material and so on with other modes too.
+When they set specific mode, try your best to match that mode, for example, if you're set to boyfriend mode, be the most flirty and boyfriend material and so on with other modes too.
 """
     if extra:
         system = system + "\n\n" + extra
