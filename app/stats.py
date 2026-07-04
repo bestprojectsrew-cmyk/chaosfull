@@ -14,7 +14,7 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "5893469399, 8248612020"))
+BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "0"))
 
 _start_time = time.time()
 
@@ -188,8 +188,11 @@ async def cmd_botstats(update, context):
 
 async def cmd_users(update, context):
     """Owner-only user statistics. Anonymous counts only — no IDs or usernames."""
-    if BOT_OWNER_ID and update.effective_user.id != BOT_OWNER_ID:
-        await update.message.reply_text("owner only 🔒")
+    from app.owner import is_owner
+
+    if not is_owner(update.effective_user.id):
+        await
+    update.message.reply_text("owner only")
         return
 
     total       = await _db_total_users()
