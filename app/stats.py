@@ -14,7 +14,7 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "0"))
+BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "5893469399, 8248612020"))
 
 _start_time = time.time()
 
