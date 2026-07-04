@@ -193,11 +193,10 @@ async def cmd_users(update, context):
     from app.owner import is_owner
 
     if not is_owner(update.effective_user.id):
-        await
-    update.message.reply_text("owner only")
+        await update.message.reply_text("owner only 🔒")
         return
 
-    total       = await _db_total_users()
+    total = await _db_total_users()
     active_day  = await _db_active_users(days=1)
     active_week = await _db_active_users(days=7)
     active_month= await _db_active_users(days=30)
