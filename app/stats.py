@@ -180,7 +180,7 @@ def get_stats_text() -> str:
 
 async def cmd_botstats(update, context):
     """Owner-only full analytics. No personal data exposed."""
-    if BOT_OWNER_ID and update.effective_user.id != BOT_OWNER_ID:
+    if update.effective_user.id != BOT_OWNER_ID:
         await update.message.reply_text("owner only 🔒")
         return
     await update.message.reply_text(get_stats_text())
