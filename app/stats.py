@@ -178,11 +178,14 @@ def get_stats_text() -> str:
 
 # ── Command handlers ──────────────────────────────────────────────────────────
 
-async def cmd_botstats(update, context):
-    """Owner-only full analytics. No personal data exposed."""
-    if update.effective_user.id != BOT_OWNER_ID:
+async def cmd_users(update, context):
+    """Owner-only user statistics. Anonymous counts only — no IDs or usernames."""
+    from app.owner import is_owner
+
+    if not is_owner(update.effective_user.id):
         await update.message.reply_text("owner only 🔒")
         return
+
     await update.message.reply_text(get_stats_text())
 
 
