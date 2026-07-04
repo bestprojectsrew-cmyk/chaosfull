@@ -48,9 +48,9 @@ OPENROUTER_MODELS = {
 }
 
 CEREBRAS_MODELS = {
-    "default": "llama-3.3-70b",
-    "fast":    "llama-3.3-70b",
-    "memory":  "llama-3.3-70b",
+    "default": "gpt-oss-120b",
+    "fast":    "gpt-oss-120b",
+    "memory":  "gpt-oss-120b",
 }
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
