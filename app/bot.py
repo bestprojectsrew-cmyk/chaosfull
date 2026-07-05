@@ -384,36 +384,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await save_message(db, user.id, "user", text, lang_code, emotion)
 
-    # Memory extraction every N messages (non-blocking to response speed)
-    updated_memory = user_memory
-   if msg_count % MEMORY_EXTRACT_EVERY == 0:
-        # Global facts — always extract and save everywhere
-        updated_global = await extract_and_update_memory(
-            text, user_memory, scope="global"
-        )
-        async with AsyncSessionLocal() as db:
-            await save_user_memory(db, user.id, updated_global, scope="global")
+           # Memory extraction every N messages (non-blocking to response speed)
+        updated_memory = user_memory
 
-        # Scope-specific facts
-        if is_group:
-            updated_group = await extract_and_update_memory(
-                text, user_memory, scope="group", chat_id=update.effective_chat.id
+        if msg_count % MEMORY_EXTRACT_EVERY == 0:
+            # Global facts — always extract and save everywhere
+            updated_global = await extract_and_update_memory(
+                text, user_memory, scope="global"
             )
             async with AsyncSessionLocal() as db:
-                await save_user_memory(
-                    db, user.id, updated_group,
-                    scope="group", chat_id=update.effective_chat.id
-                )
-        else:
-            updated_private = await extract_and_update_memory(
-                text, user_memory, scope="private"
-            )
-            async with AsyncSessionLocal() as db:
-                await save_user_memory(
-                    db, user.id, updated_private, scope="private"
-                )
+                await save_user_memory(db, user.id, updated_global, scope="global")
 
-        updated_memory = updated_global
+            # Scope-specific facts
+            if is_group:
+                updated_group = await extract_and_update_memory(
+                    text, user_memory, scope="group", chat_id=update.effective_chat.id
+                )
+                async with AsyncSessionLocal() as db:
+                    await save_user_memory(
+                        db,
+                        user.id,
+                        updated_group,
+                        scope="group",
+                        chat_id=update.effective_chat.id,
+                    )
+            else:
+                updated_private = await extract_and_update_memory(
+                    text, user_memory, scope="private"
+                )
+                async with AsyncSessionLocal() as db:
+                    await save_user_memory(
+                        db,
+                        user.id,
+                        updated_private,
+                        scope="private",
+                    )
+
+            updated_memory = updated_global
        
     # Typing simulation
     await context.bot.send_chat_action(
