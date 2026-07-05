@@ -72,12 +72,15 @@ class UserMemory(Base):
       "mood_history": [...],    # last 5 detected moods
     }
     """
+   class UserMemory(Base):
     __tablename__ = "user_memory"
 
-    id         = Column(Integer,    primary_key=True, autoincrement=True)
-    user_id    = Column(BigInteger, unique=True, nullable=False)
-    data       = Column(JSON,       default=dict)   # the full memory blob
-    updated_at = Column(DateTime,   default=datetime.utcnow)
+    id           = Column(Integer,    primary_key=True, autoincrement=True)
+    user_id      = Column(BigInteger, nullable=False, index=True)
+    chat_id      = Column(BigInteger, nullable=True,  index=True)
+    memory_scope = Column(String(20), nullable=False,  default="global", index=True)
+    data         = Column(JSON,       default=dict)
+    updated_at   = Column(DateTime,   default=datetime.utcnow)
 
 
 class Message(Base):
