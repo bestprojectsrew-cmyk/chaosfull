@@ -36,8 +36,8 @@ from app import queue_manager
 
 logger = logging.getLogger(__name__)
 
-MAX_HISTORY = 16
-MAX_TOKENS  = 400
+MAX_HISTORY = 8
+MAX_TOKENS  = 300
 
 # ── Language instruction map ──────────────────────────────────────────────────
 # Placed FIRST in every prompt. Hard rule, not a suggestion.
