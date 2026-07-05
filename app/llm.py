@@ -288,7 +288,7 @@ When they set specific mode, try your best to match that mode, for example, if y
     messages = [{"role": "system", "content": system}]
     messages.extend(history[-(MAX_HISTORY):])
     messages.append({"role": "user", "content": user_message})
-logger.info(f"[llm] prompt size: ~{sum(len(str(m)) for m in messages) // 4} tokens")
+    logger.info(f"[llm] prompt size: ~{sum(len(str(m)) for m in messages) // 4} tokens")
 
     # ── STEP 4: Pick tier ──────────────────────────────────────────────────────
     tier = "fast" if _is_greeting(user_message) else "default"
