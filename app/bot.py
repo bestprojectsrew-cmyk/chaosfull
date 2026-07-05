@@ -423,6 +423,7 @@ async def job_proactive(context: ContextTypes.DEFAULT_TYPE):
     """Check every 6h for users inactive 48h+ and send a check-in."""
     async with AsyncSessionLocal() as db:
         users = await get_inactive_users(db, hours=48)
+        users = users[:10] # max 10 proactive messages per run
 
     for u in users:
         try:
@@ -513,7 +514,7 @@ def build_application() -> Application:
     app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    app.job_queue.run_repeating(job_proactive, interval=6 * 3600, first=300)
+    app.job_queue.run_repeating(job_proactive, interval=24 * 3600, first=300)
 
     return app
 
