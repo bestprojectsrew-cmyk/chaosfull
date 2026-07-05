@@ -55,7 +55,7 @@ CEREBRAS_MODELS = {
 
 # ── Circuit breaker state ─────────────────────────────────────────────────────
 _failures: dict[str, float] = {}
-_COOLDOWN = 2
+_COOLDOWN = 5
 
 
 def _is_available(name: str) -> bool:
@@ -257,7 +257,7 @@ if _CEREBRAS_KEY:
 
 async def chat(
     messages: list[dict],
-    max_tokens: int = 400,
+    max_tokens: int = 300,
     temperature: float = 0.85,
     tier: str = "default",
 ) -> str:
