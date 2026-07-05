@@ -59,28 +59,36 @@ class UserMemory(Base):
     Long-term structured memory per user.
     One row per user — JSON blob for all facts.
     Schema of the JSON:
-    {
-      "nickname": "...",
-      "birthday": "...",
-      "fav_games": [...],
-      "fav_football_club": "...",
-      "fav_music": [...],
-      "fav_movies": [...],
-      "relationships": {"mom": "...", "bestie": "..."},
-      "facts": ["User is from Tashkent", "User hates Mondays"],
-      "recent_topics": [...],   # last 10 topics discussed
-      "mood_history": [...],    # last 5 detected moods
-    }
     """
-   class UserMemory(Base):
+{
+  "nickname": "...",
+  "birthday": "...",
+  "fav_games": [...],
+  "fav_football_club": "...",
+  "fav_music": [...],
+  "fav_movies": [...],
+  "relationships": {
+      "mom": "...",
+      "bestie": "..."
+  },
+  "facts": [
+      "User is from Tashkent",
+      "User hates Mondays"
+  ],
+  "recent_topics": [...],   # last 10 topics discussed
+  "mood_history": [...]     # last 5 detected moods
+}
+"""
+
+class UserMemory(Base):
     __tablename__ = "user_memory"
 
-    id           = Column(Integer,    primary_key=True, autoincrement=True)
-    user_id      = Column(BigInteger, nullable=False, index=True)
-    chat_id      = Column(BigInteger, nullable=True,  index=True)
-    memory_scope = Column(String(20), nullable=False,  default="global", index=True)
-    data         = Column(JSON,       default=dict)
-    updated_at   = Column(DateTime,   default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, nullable=False, index=True)
+    chat_id = Column(BigInteger, nullable=True, index=True)
+    memory_scope = Column(String(20), nullable=False, default="global", index=True)
+    data = Column(JSON, default=dict)
+    updated_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Message(Base):
