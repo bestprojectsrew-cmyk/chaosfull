@@ -132,31 +132,102 @@ async def get_message_count(db: AsyncSession, user_id: int) -> int:
 
 # ── Long-term Memory ──────────────────────────────────────────────────────────
 
-async def get_user_memory(db: AsyncSession, user_id: int) -> dict:
-    """Returns the user's memory dict. Creates empty record if none exists."""
+async def get_user_memory(db: AsyncSession, user_id: int, chat_id: int = 0, is_group: bool = False) -> dict:
+    """
+    Load memory based on chat context.
+    Private: global + private scopes.
+    Group: global + group scope for this specific chat_id only.
+    """
+    from app.database import UserMemory
+    from app.memory import EMPTY_MEMORY
+    import copy
+
+    # Always load global memory
     result = await db.execute(
-        select(UserMemory).where(UserMemory.user_id == user_id)
+        select(UserMemory).where(
+            UserMemory.user_id == user_id,
+            UserMemory.memory_scope == "global",
+        )
     )
-    mem_row = result.scalar_one_or_none()
-    if mem_row is None:
-        return dict(EMPTY_MEMORY)
-    return mem_row.data or dict(EMPTY_MEMORY)
+    global_mem = result.scalar_one_or_none()
+    merged = copy.deepcopy(global_mem.data if global_mem else EMPTY_MEMORY)
+
+    if is_group and chat_id:
+        # Load this group's memory only — never another group's
+        result = await db.execute(
+            select(UserMemory).where(
+                UserMemory.user_id == user_id,
+                UserMemory.chat_id == chat_id,
+                UserMemory.memory_scope == "group",
+            )
+        )
+        group_mem = result.scalar_one_or_none()
+        if group_mem and group_mem.data:
+            # Merge group facts on top of global
+            group_data = group_mem.data
+            for key, val in group_data.items():
+                if isinstance(val, list) and isinstance(merged.get(key), list):
+                    merged[key] = merged[key] + [v for v in val if v not in merged[key]]
+                elif val:
+                    merged[key] = val
+    else:
+        # Private chat: load private memory on top of global
+        result = await db.execute(
+            select(UserMemory).where(
+                UserMemory.user_id == user_id,
+                UserMemory.memory_scope == "private",
+            )
+        )
+        private_mem = result.scalar_one_or_none()
+        if private_mem and private_mem.data:
+            for key, val in private_mem.data.items():
+                if isinstance(val, list) and isinstance(merged.get(key), list):
+                    merged[key] = merged[key] + [v for v in val if v not in merged[key]]
+                elif val:
+                    merged[key] = val
+
+    return merged
 
 
-async def save_user_memory(db: AsyncSession, user_id: int, data: dict) -> None:
-    """Upsert the user's memory blob."""
-    result = await db.execute(
-        select(UserMemory).where(UserMemory.user_id == user_id)
-    )
+async def save_user_memory(
+    db: AsyncSession,
+    user_id: int,
+    data: dict,
+    scope: str = "global",
+    chat_id: int | None = None,
+) -> None:
+    """
+    Save memory to the correct scope.
+    scope="global"  — permanent facts, visible everywhere
+    scope="private" — private chat only, chat_id not needed
+    scope="group"   — group specific, requires chat_id
+    """
+    from app.database import UserMemory
+
+    # Build the filter conditions for upsert
+    conditions = [
+        UserMemory.user_id == user_id,
+        UserMemory.memory_scope == scope,
+    ]
+    if scope == "group" and chat_id:
+        conditions.append(UserMemory.chat_id == chat_id)
+
+    result = await db.execute(select(UserMemory).where(*conditions))
     mem_row = result.scalar_one_or_none()
+
     if mem_row is None:
         mem_row = UserMemory(
-            user_id=user_id, data=data, updated_at=datetime.utcnow()
+            user_id=user_id,
+            chat_id=chat_id if scope == "group" else None,
+            memory_scope=scope,
+            data=data,
+            updated_at=datetime.utcnow(),
         )
         db.add(mem_row)
     else:
         mem_row.data = data
         mem_row.updated_at = datetime.utcnow()
+
     await db.commit()
 
 
