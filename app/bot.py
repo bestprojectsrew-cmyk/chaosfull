@@ -442,6 +442,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     owner_username=user.username or "",
     owner_name=user.first_name or "",
     )
+print("DEBUG: reply =", repr(reply))
 
     # Save and send
     async with AsyncSessionLocal() as db:
