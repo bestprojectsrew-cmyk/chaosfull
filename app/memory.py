@@ -57,13 +57,44 @@ def format_memory_for_prompt(mem: dict) -> str:
     return "[MEMORY] " + " | ".join(parts)
 
 
-async def extract_and_update_memory(user_message: str, current_memory: dict) -> dict:
+async def extract_and_update_memory(
+    user_message: str,
+    current_memory: dict,
+    scope: str = "global",
+    chat_id: int | None = None,
+) -> dict:
     """
     Extract new facts from user message and merge into existing memory.
+    Routes extracted facts to the correct scope:
+      global  — birthday, age, nickname, city, country, club, games, goals
+      private — personal conversations, emotions, private plans
+      group   — group-specific topics, jokes, interactions
     Uses cheap model. Returns updated dict unchanged if extraction fails.
     """
+    # Scope-specific extraction instructions
+    scope_instructions = {
+        "global": (
+            "Extract ONLY permanent personal facts: nickname, age, birthday, city, country, "
+            "job_or_school, fav_football_club, fav_games, fav_music, fav_movies, fav_anime, "
+            "relationships, goals. These are facts true everywhere about this person."
+        ),
+        "private": (
+            "Extract ONLY private/personal conversation facts: emotional discussions, "
+            "personal promises, private plans, private jokes, personal struggles. "
+            "Do NOT extract general facts like age or city here."
+        ),
+        "group": (
+            "Extract ONLY group-relevant facts: topics discussed in this group, "
+            "group-specific jokes or references, how this person interacts in this group. "
+            "Do NOT extract permanent personal facts like age or birthday here."
+        ),
+    }
+
+    instruction = scope_instructions.get(scope, scope_instructions["global"])
+
     prompt = (
         f"Extract personal facts from this message and update the JSON. "
+        f"{instruction} "
         f"Only add NEW info. Never delete existing. Return ONLY valid JSON.\n\n"
         f"CURRENT: {json.dumps(current_memory, ensure_ascii=False)}\n\n"
         f"MESSAGE: \"{user_message}\"\n\n"
@@ -81,7 +112,6 @@ async def extract_and_update_memory(user_message: str, current_memory: dict) -> 
         )
         raw = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
         updated = json.loads(raw)
-        # Keep lists bounded
         for key in ("recent_topics", "mood_history", "facts"):
             if isinstance(updated.get(key), list):
                 limits = {"recent_topics": 10, "mood_history": 5, "facts": 20}
