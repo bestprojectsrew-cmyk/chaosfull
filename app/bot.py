@@ -374,7 +374,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_mood_in_memory(db, user.id, emotion)
 
         personality = await get_user_personality(db, user.id)
-        user_memory = await get_user_memory(db, user.id)
+        user_memory = await get_user_memory(
+            db, user.id,
+            chat_id=update.effective_chat.id,
+            is_group=is_group,
+        )
         history     = await get_recent_history(db, user.id, limit=MAX_HISTORY_DB)
         msg_count   = await get_message_count(db, user.id)
 
@@ -382,11 +386,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Memory extraction every N messages (non-blocking to response speed)
     updated_memory = user_memory
-    if msg_count % MEMORY_EXTRACT_EVERY == 0:
-        updated_memory = await extract_and_update_memory(text, user_memory)
+   if msg_count % MEMORY_EXTRACT_EVERY == 0:
+        # Global facts — always extract and save everywhere
+        updated_global = await extract_and_update_memory(
+            text, user_memory, scope="global"
+        )
         async with AsyncSessionLocal() as db:
-            await save_user_memory(db, user.id, updated_memory)
+            await save_user_memory(db, user.id, updated_global, scope="global")
 
+        # Scope-specific facts
+        if is_group:
+            updated_group = await extract_and_update_memory(
+                text, user_memory, scope="group", chat_id=update.effective_chat.id
+            )
+            async with AsyncSessionLocal() as db:
+                await save_user_memory(
+                    db, user.id, updated_group,
+                    scope="group", chat_id=update.effective_chat.id
+                )
+        else:
+            updated_private = await extract_and_update_memory(
+                text, user_memory, scope="private"
+            )
+            async with AsyncSessionLocal() as db:
+                await save_user_memory(
+                    db, user.id, updated_private, scope="private"
+                )
+
+        updated_memory = updated_global
+       
     # Typing simulation
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id, action=ChatAction.TYPING
@@ -414,7 +442,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send(update, context, reply)
 
 
-MAX_HISTORY_DB = 16
+MAX_HISTORY_DB = 8
 
 
 # ── Proactive messaging ───────────────────────────────────────────────────────
