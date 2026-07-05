@@ -248,8 +248,8 @@ async def get_ai_response(
 
     # Group context appended to core if in group
     extra = group_context_block if group_context_block else ""
-
-      system = _build_system(
+  
+    system = _build_system(
         lang_code=lang_code,
         lang_label=lang_label,
         personality=personality,
