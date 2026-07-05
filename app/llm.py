@@ -121,7 +121,6 @@ Simply tell the user you couldn't find current information. One sentence is enou
 
 
 def _build_system(
-   def _build_system(
     lang_code: str,
     lang_label: str,
     personality: str,
@@ -154,7 +153,9 @@ def _build_system(
 
     # 6. Memory — last, lowest priority
     if memory_block:
-        parts.append(f"{memory_block}\nMention memory naturally when relevant. Never list it all at once.")
+        parts.append(
+            f"{memory_block}\nMention memory naturally when relevant. Never list it all at once."
+        )
 
     return "\n\n".join(parts)
 
