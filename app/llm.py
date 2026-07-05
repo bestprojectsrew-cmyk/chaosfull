@@ -121,12 +121,14 @@ Simply tell the user you couldn't find current information. One sentence is enou
 
 
 def _build_system(
+   def _build_system(
     lang_code: str,
     lang_label: str,
     personality: str,
     emotion: str,
     memory_block: str,
     search_block: str,
+    is_group: bool = False,
 ) -> str:
     parts = []
 
@@ -197,6 +199,7 @@ async def get_ai_response(
     emotion: str = "neutral",
     user_memory: dict | None = None,
     group_context_block: str = "",
+    is_group: bool = False,
     is_owner: bool = False,
     owner_username: str="",
     owner_name: str="",
@@ -245,13 +248,14 @@ async def get_ai_response(
     # Group context appended to core if in group
     extra = group_context_block if group_context_block else ""
 
-    system = _build_system(
+   system = _build_system(
         lang_code=lang_code,
         lang_label=lang_label,
         personality=personality,
         emotion=emotion,
         memory_block=memory_block,
         search_block=search_block,
+        is_group=is_group,
     )
     if is_owner:
         system += """
