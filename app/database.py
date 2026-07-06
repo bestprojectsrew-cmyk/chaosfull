@@ -155,6 +155,20 @@ class GroupNote(Base):
     created_by = Column(BigInteger,  nullable=True)
     created_at = Column(DateTime,    default=datetime.utcnow)
 
+class BotGroup(Base):
+    """Groups where Chaoz has been used."""
+
+    __tablename__ = "bot_groups"
+
+    chat_id = Column(BigInteger, primary_key=True)
+    title = Column(String(255), nullable=False)
+    username = Column(String(255), nullable=True)
+    chat_type = Column(String(32), nullable=False)
+
+    member_count = Column(Integer, default=0)
+
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    last_seen = Column(DateTime, default=datetime.utcnow)
 
 async def init_db():
     """Create all tables if they don't exist."""
