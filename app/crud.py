@@ -468,3 +468,11 @@ async def save_group(
         group.last_seen = datetime.utcnow()
 
     await db.commit()
+
+
+async def get_all_groups(db: AsyncSession):
+    """Return all groups ordered by latest activity."""
+    result = await db.execute(
+        select(BotGroup).order_by(BotGroup.last_seen.desc())
+    )
+    return result.scalars().all()
