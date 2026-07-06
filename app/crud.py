@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
-from app.database import User, Message, UserMemory
+from app.database import User, Message, UserMemory, BotGroup
 from app.memory import EMPTY_MEMORY
 
 
@@ -436,3 +436,35 @@ async def list_notes(db: AsyncSession, chat_id: int) -> list:
         select(GroupNote).where(GroupNote.chat_id == chat_id)
     )
     return result.scalars().all()
+
+async def save_group(
+    db: AsyncSession,
+    chat_id: int,
+    title: str,
+    username: str | None,
+    chat_type: str,
+):
+    """Create or update a group record."""
+
+    result = await db.execute(
+        select(BotGroup).where(BotGroup.chat_id == chat_id)
+    )
+    group = result.scalar_one_or_none()
+
+    if group is None:
+        group = BotGroup(
+            chat_id=chat_id,
+            title=title,
+            username=username,
+            chat_type=chat_type,
+            joined_at=datetime.utcnow(),
+            last_seen=datetime.utcnow(),
+        )
+        db.add(group)
+    else:
+        group.title = title
+        group.username = username
+        group.chat_type = chat_type
+        group.last_seen = datetime.utcnow()
+
+    await db.commit()
