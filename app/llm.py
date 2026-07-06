@@ -37,7 +37,7 @@ from app import queue_manager
 logger = logging.getLogger(__name__)
 
 MAX_HISTORY = 8
-MAX_TOKENS  = 300
+MAX_TOKENS  = 500
 
 # ── Language instruction map ──────────────────────────────────────────────────
 # Placed FIRST in every prompt. Hard rule, not a suggestion.
@@ -301,6 +301,7 @@ When they set specific mode, try your best to match that mode, for example, if y
             max_tokens=MAX_TOKENS,
             temperature=0.85,
             tier=tier,
+            stop=None
         )
 
     _t_start = __import__('time').time()
