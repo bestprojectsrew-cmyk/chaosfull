@@ -371,9 +371,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_type=update.effective_chat.type,
         )
 
-        db_user = await get_or_create_user(
-            db, user.id, user.username, user.first_name, user.language_code,
-        )
+    db_user = await get_or_create_user(
+        db,
+        user.id,
+        user.username,
+        user.first_name,
+        user.language_code,
+    )
 
         # Detect language from this specific message
         lang_code, lang_label = detect_language(text)
