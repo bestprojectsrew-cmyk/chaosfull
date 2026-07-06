@@ -301,7 +301,6 @@ When they set specific mode, try your best to match that mode, for example, if y
             max_tokens=MAX_TOKENS,
             temperature=0.85,
             tier=tier,
-            stop=None
         )
 
     _t_start = __import__('time').time()
