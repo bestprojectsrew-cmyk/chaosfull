@@ -19,7 +19,7 @@ from app.crud import (
     get_or_create_user, save_message, get_recent_history, clear_history,
     is_banned, update_user_language, get_user_personality, set_user_personality,
     get_user_memory, save_user_memory, update_mood_in_memory,
-    get_message_count, update_last_proactive, get_inactive_users,
+    get_message_count, update_last_proactive, get_inactive_users,save_group,
 )
 from app.language import detect_language
 from app.emotions import detect_emotion
@@ -361,6 +361,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with AsyncSessionLocal() as db:
         if await is_banned(db, user.id):
             return
+
+        if is_group:
+    await save_group(
+        db=db,
+        chat_id=update.effective_chat.id,
+        title=update.effective_chat.title or "Unknown",
+        username=update.effective_chat.username,
+        chat_type=update.effective_chat.type,
+    )
 
         db_user = await get_or_create_user(
             db, user.id, user.username, user.first_name, user.language_code,
