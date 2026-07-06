@@ -257,7 +257,7 @@ if _CEREBRAS_KEY:
 
 async def chat(
     messages: list[dict],
-    max_tokens: int = 300,
+    max_tokens: int = 500,
     temperature: float = 0.85,
     tier: str = "default",
 ) -> str:
