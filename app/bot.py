@@ -510,12 +510,13 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(cb_mode, pattern=r"^mode:"))
 
     # ── Private chat only ─────────────────────────────────────────────────────
-private_filter = filters.ChatType.PRIVATE
-app.add_handler(CommandHandler("panel",     cmd_panel,     filters=private_filter))
-app.add_handler(CommandHandler("botstats",  cmd_botstats))   # owner only, any chat
-app.add_handler(CommandHandler("users",     cmd_users))      # owner only, any chat
-app.add_handler(CommandHandler("groups",    cmd_groups))     # owner only, any chat
-app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
+    private_filter = filters.ChatType.PRIVATE
+
+    app.add_handler(CommandHandler("panel",     cmd_panel,     filters=private_filter))
+    app.add_handler(CommandHandler("botstats",  cmd_botstats))   # owner only
+    app.add_handler(CommandHandler("users",     cmd_users))      # owner only
+    app.add_handler(CommandHandler("groups",    cmd_groups))     # owner only
+    app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
 
     # ── Group-only commands ────────────────────────────────────────────────────
     group_filter = filters.ChatType.GROUPS
