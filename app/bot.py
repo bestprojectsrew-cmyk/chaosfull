@@ -45,7 +45,7 @@ from app.moderation.filters import cmd_filter, cmd_delfilter, cmd_filters, handl
 from app.moderation.notes import cmd_savenote, cmd_getnote, cmd_delnote, cmd_notes, handle_hashtag_note
 from app.moderation.admin_panel import cmd_panel, cb_panel
 from app.builtin_replies import is_name_trigger
-from app.stats import cmd_botstats, cmd_users, record_message, record_builtin_reply, record_sticker_reply
+from app.stats import cmd_botstats, cmd_users, record_message,cmd_groups, record_builtin_reply, record_sticker_reply
 from app.typing_sim import simulate_typing
 
 logger = logging.getLogger(__name__)
@@ -510,11 +510,12 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(cb_mode, pattern=r"^mode:"))
 
     # ── Private chat only ─────────────────────────────────────────────────────
-    private_filter = filters.ChatType.PRIVATE
-    app.add_handler(CommandHandler("panel",     cmd_panel,     filters=private_filter))
-    app.add_handler(CommandHandler("botstats",  cmd_botstats))   # owner only, any chat
-    app.add_handler(CommandHandler("users",     cmd_users))       # owner only, any chat
-    app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
+private_filter = filters.ChatType.PRIVATE
+app.add_handler(CommandHandler("panel",     cmd_panel,     filters=private_filter))
+app.add_handler(CommandHandler("botstats",  cmd_botstats))   # owner only, any chat
+app.add_handler(CommandHandler("users",     cmd_users))      # owner only, any chat
+app.add_handler(CommandHandler("groups",    cmd_groups))     # owner only, any chat
+app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
 
     # ── Group-only commands ────────────────────────────────────────────────────
     group_filter = filters.ChatType.GROUPS
