@@ -519,9 +519,8 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("groups",    cmd_groups))     # owner only
     app.add_handler(CallbackQueryHandler(cb_panel, pattern=r"^panel:"))
 
-app.add_handler(CommandHandler("announcegroups", cmd_announcegroups))
-
-app.add_handler(CommandHandler("announceusers", cmd_announceusers))
+    app.add_handler(CommandHandler("announcegroups", cmd_announcegroups))
+    app.add_handler(CommandHandler("announceusers", cmd_announceusers))
 
     # ── Group-only commands ────────────────────────────────────────────────────
     group_filter = filters.ChatType.GROUPS
