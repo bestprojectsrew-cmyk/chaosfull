@@ -224,3 +224,36 @@ async def cmd_users(update, context):
         f"Private chats: {private}\n"
         f"Average messages per user: {avg_msgs}"
     )
+
+async def cmd_groups(update, context):
+    """Owner-only list of groups using the bot."""
+
+    if not is_owner(update.effective_user.id):
+        await update.message.reply_text("owner only 🔒")
+        return
+
+    async with AsyncSessionLocal() as db:
+        groups = await get_all_groups(db)
+
+    if not groups:
+        await update.message.reply_text("No groups found.")
+        return
+
+    text = f"📊 Groups using Chaoz ({len(groups)})\n\n"
+
+    for i, group in enumerate(groups, 1):
+        username = f"@{group.username}" if group.username else "Private group"
+
+        text += (
+            f"{i}. {group.title}\n"
+            f"   {username}\n"
+            f"   ID: {group.chat_id}\n\n"
+        )
+
+        # Telegram messages can't exceed 4096 chars
+        if len(text) > 3500:
+            await update.message.reply_text(text)
+            text = ""
+
+    if text:
+        await update.message.reply_text(text)
