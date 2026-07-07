@@ -476,3 +476,16 @@ async def get_all_groups(db: AsyncSession):
         select(BotGroup).order_by(BotGroup.last_seen.desc())
     )
     return result.scalars().all()
+
+async def get_all_users(db: AsyncSession):
+    """Return all registered users."""
+    result = await db.execute(select(User))
+    return result.scalars().all()
+
+
+async def get_all_groups(db: AsyncSession):
+    """Return all groups the bot knows about."""
+    from app.database import BotGroup
+
+    result = await db.execute(select(BotGroup))
+    return result.scalars().all()
