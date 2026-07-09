@@ -389,9 +389,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user.first_name,
         user.language_code,
     )
-        # Detect language from this specific message
-        lang_code, lang_label = detect_language(text)
-        emotion = detect_emotion(text)
+
+    # Detect language from this specific message
+    lang_code, lang_label = detect_language(text)
+    emotion = detect_emotion(text)
 
         await update_user_language(db, user.id, lang_code)
         await update_mood_in_memory(db, user.id, emotion)
