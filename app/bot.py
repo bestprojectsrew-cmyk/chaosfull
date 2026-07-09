@@ -355,59 +355,61 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Record message in stats (non-blocking)
     asyncio.create_task(record_message(
-        user.id, update.effective_chat.id,
+        user.id,
+        update.effective_chat.id,
         is_group=update.message.chat.type in ("group", "supergroup")
     ))
 
     async with AsyncSessionLocal() as db:
-    if await is_banned(db, user.id):
-        return
+        if await is_banned(db, user.id):
+            return
 
-    if is_group:
-        is_new_group = await save_group(
-            db=db,
-            chat_id=update.effective_chat.id,
-            title=update.effective_chat.title or "Unknown",
-            username=update.effective_chat.username,
-            chat_type=update.effective_chat.type,
-        )
-
-        if is_new_group:
-            from app.chaoz_life import record_chaoz_memory
-
-            await record_chaoz_memory(
+        if is_group:
+            is_new_group = await save_group(
                 db=db,
-                memory_type="milestone",
-                importance=2,
-                story="I discovered another corner of the internet today."
+                chat_id=update.effective_chat.id,
+                title=update.effective_chat.title or "Unknown",
+                username=update.effective_chat.username,
+                chat_type=update.effective_chat.type,
             )
 
-    db_user = await get_or_create_user(
-        db,
-        user.id,
-        user.username,
-        user.first_name,
-        user.language_code,
-    )
+            if is_new_group:
+                from app.chaoz_life import record_chaoz_memory
 
-    # Detect language from this specific message
-    lang_code, lang_label = detect_language(text)
-    emotion = detect_emotion(text)
+                await record_chaoz_memory(
+                    db=db,
+                    memory_type="milestone",
+                    importance=2,
+                    story="I discovered another corner of the internet today."
+                )
+
+        db_user = await get_or_create_user(
+            db,
+            user.id,
+            user.username,
+            user.first_name,
+            user.language_code,
+        )
+
+        # Detect language from this specific message
+        lang_code, lang_label = detect_language(text)
+        emotion = detect_emotion(text)
 
         await update_user_language(db, user.id, lang_code)
         await update_mood_in_memory(db, user.id, emotion)
 
         personality = await get_user_personality(db, user.id)
         user_memory = await get_user_memory(
-            db, user.id,
+            db,
+            user.id,
             chat_id=update.effective_chat.id,
             is_group=is_group,
         )
-        history     = await get_recent_history(db, user.id, limit=MAX_HISTORY_DB)
-        msg_count   = await get_message_count(db, user.id)
+        history = await get_recent_history(db, user.id, limit=MAX_HISTORY_DB)
+        msg_count = await get_message_count(db, user.id)
 
         await save_message(db, user.id, "user", text, lang_code, emotion)
-
+        
            # Memory extraction every N messages (non-blocking to response speed)
         updated_memory = user_memory
 
