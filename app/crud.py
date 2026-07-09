@@ -443,8 +443,10 @@ async def save_group(
     title: str,
     username: str | None,
     chat_type: str,
-):
-    """Create or update a group record."""
+) -> bool:
+    """Create or update a group record.
+    Returns True if this is a brand-new group.
+    """
 
     result = await db.execute(
         select(BotGroup).where(BotGroup.chat_id == chat_id)
@@ -452,26 +454,25 @@ async def save_group(
     group = result.scalar_one_or_none()
 
     if group is None:
-    group = BotGroup(
-        chat_id=chat_id,
-        title=title,
-        username=username,
-        chat_type=chat_type,
-        joined_at=datetime.utcnow(),
-        last_seen=datetime.utcnow(),
-    )
-    db.add(group)
+        group = BotGroup(
+            chat_id=chat_id,
+            title=title,
+            username=username,
+            chat_type=chat_type,
+            joined_at=datetime.utcnow(),
+            last_seen=datetime.utcnow(),
+        )
+        db.add(group)
+        await db.commit()
+        return True
+
+    group.title = title
+    group.username = username
+    group.chat_type = chat_type
+    group.last_seen = datetime.utcnow()
+
     await db.commit()
-    return True
-
-group.title = title
-group.username = username
-group.chat_type = chat_type
-group.last_seen = datetime.utcnow()
-
-await db.commit()
-return False
-
+    return False
 
 async def get_all_groups(db: AsyncSession):
     """Return all groups ordered by latest activity."""
@@ -483,14 +484,6 @@ async def get_all_groups(db: AsyncSession):
 async def get_all_users(db: AsyncSession):
     """Return all registered users."""
     result = await db.execute(select(User))
-    return result.scalars().all()
-
-
-async def get_all_groups(db: AsyncSession):
-    """Return all groups the bot knows about."""
-    from app.database import BotGroup
-
-    result = await db.execute(select(BotGroup))
     return result.scalars().all()
 
 # ── Chaoz Memories ───────────────────────────────────────────────────────────
