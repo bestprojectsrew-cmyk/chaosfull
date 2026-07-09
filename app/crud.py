@@ -489,3 +489,78 @@ async def get_all_groups(db: AsyncSession):
 
     result = await db.execute(select(BotGroup))
     return result.scalars().all()
+
+# ── Chaoz Memories ───────────────────────────────────────────────────────────
+
+async def save_chaoz_memory(
+    db: AsyncSession,
+    memory_type: str,
+    story: str,
+    importance: int = 1,
+):
+    from app.database import ChaozMemory
+
+    memory = ChaozMemory(
+        memory_type=memory_type,
+        story=story,
+        importance=importance,
+        created_at=datetime.utcnow(),
+    )
+
+    db.add(memory)
+    await db.commit()
+
+
+async def get_random_chaoz_memory(db: AsyncSession):
+    from app.database import ChaozMemory
+    from sqlalchemy import func
+
+    result = await db.execute(
+        select(ChaozMemory)
+        .order_by(func.random())
+        .limit(1)
+    )
+
+    return result.scalar_one_or_none()
+
+
+async def get_recent_chaoz_memories(
+    db: AsyncSession,
+    limit: int = 10,
+):
+    from app.database import ChaozMemory
+
+    result = await db.execute(
+        select(ChaozMemory)
+        .order_by(ChaozMemory.created_at.desc())
+        .limit(limit)
+    )
+
+    return result.scalars().all()
+
+
+async def cleanup_chaoz_memories(
+    db: AsyncSession,
+    keep: int = 500,
+):
+    from app.database import ChaozMemory
+
+    result = await db.execute(
+        select(ChaozMemory.id)
+        .order_by(ChaozMemory.created_at.desc())
+    )
+
+    ids = [x[0] for x in result.all()]
+
+    if len(ids) <= keep:
+        return
+
+    remove_ids = ids[keep:]
+
+    await db.execute(
+        delete(ChaozMemory).where(
+            ChaozMemory.id.in_(remove_ids)
+        )
+    )
+
+    await db.commit()
