@@ -170,6 +170,22 @@ class BotGroup(Base):
     joined_at = Column(DateTime, default=datetime.utcnow)
     last_seen = Column(DateTime, default=datetime.utcnow)
 
+class ChaozMemory(Base):
+    """
+    Chaoz's own life memories.
+    """
+
+    __tablename__ = "chaoz_memory"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    memory_type = Column(String(32), nullable=False)
+    story = Column(Text, nullable=False)
+
+    importance = Column(Integer, default=1)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 async def init_db():
     """Create all tables if they don't exist."""
     async with async_engine.begin() as conn:
