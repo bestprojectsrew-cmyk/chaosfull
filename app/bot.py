@@ -363,7 +363,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if await is_banned(db, user.id):
             return
 
-        if is_group:
+if is_group:
     is_new_group = await save_group(
         db=db,
         chat_id=update.effective_chat.id,
@@ -379,9 +379,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db=db,
             memory_type="milestone",
             importance=2,
-            story=f"I discovered a new group called '{update.effective_chat.title or 'Unknown'}'."
+            story="I discovered another corner of the internet today."
         )
-
+        
         db_user = await get_or_create_user(
             db,
             user.id,
