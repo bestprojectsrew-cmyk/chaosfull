@@ -364,13 +364,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if is_group:
-            await save_group(
-                db=db,
-                chat_id=update.effective_chat.id,
-                title=update.effective_chat.title or "Unknown",
-                username=update.effective_chat.username,
-                chat_type=update.effective_chat.type,
-            )
+    is_new_group = await save_group(
+        db=db,
+        chat_id=update.effective_chat.id,
+        title=update.effective_chat.title or "Unknown",
+        username=update.effective_chat.username,
+        chat_type=update.effective_chat.type,
+    )
+
+    if is_new_group:
+        from app.chaoz_life import record_chaoz_memory
+
+        await record_chaoz_memory(
+            db=db,
+            memory_type="milestone",
+            importance=2,
+            story=f"I discovered a new group called '{update.effective_chat.title or 'Unknown'}'."
+        )
 
         db_user = await get_or_create_user(
             db,
