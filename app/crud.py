@@ -452,22 +452,25 @@ async def save_group(
     group = result.scalar_one_or_none()
 
     if group is None:
-        group = BotGroup(
-            chat_id=chat_id,
-            title=title,
-            username=username,
-            chat_type=chat_type,
-            joined_at=datetime.utcnow(),
-            last_seen=datetime.utcnow(),
-        )
-        db.add(group)
-    else:
-        group.title = title
-        group.username = username
-        group.chat_type = chat_type
-        group.last_seen = datetime.utcnow()
-
+    group = BotGroup(
+        chat_id=chat_id,
+        title=title,
+        username=username,
+        chat_type=chat_type,
+        joined_at=datetime.utcnow(),
+        last_seen=datetime.utcnow(),
+    )
+    db.add(group)
     await db.commit()
+    return True
+
+group.title = title
+group.username = username
+group.chat_type = chat_type
+group.last_seen = datetime.utcnow()
+
+await db.commit()
+return False
 
 
 async def get_all_groups(db: AsyncSession):
