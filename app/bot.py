@@ -538,9 +538,8 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("clearmemory", cmd_clearmemory))
     app.add_handler(CommandHandler("clear",       cmd_clear))
     app.add_handler(CommandHandler("stats",       cmd_stats))
-   
-app.add_handler(CommandHandler("story", cmd_story))
- app.add_handler(CallbackQueryHandler(cb_mode, pattern=r"^mode:"))
+    app.add_handler(CommandHandler("story", cmd_story))
+    app.add_handler(CallbackQueryHandler(cb_mode, pattern=r"^mode:"))
 
     # ── Private chat only ─────────────────────────────────────────────────────
     private_filter = filters.ChatType.PRIVATE
