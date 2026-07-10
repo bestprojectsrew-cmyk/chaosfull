@@ -230,6 +230,24 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_story(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from app.database import AsyncSessionLocal
+    from app.chaoz_life import build_daily_story
+
+    async with AsyncSessionLocal() as db:
+        story = await build_daily_story(db)
+
+    if not story:
+        await update.message.reply_text(
+            "I don't really have any stories yet... Give me some time to make memories. 😶"
+        )
+        return
+
+    await update.message.reply_text(
+        "📖 Chaoz's Journal\n\n" + story
+    )
+
+
 # ── Sticker handler ───────────────────────────────────────────────────────────
 
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
