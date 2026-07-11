@@ -46,6 +46,7 @@ from app.moderation.notes import cmd_savenote, cmd_getnote, cmd_delnote, cmd_not
 from app.moderation.admin_panel import cmd_panel, cb_panel
 from app.builtin_replies import is_name_trigger
 from app.stats import cmd_botstats, cmd_users, record_message,cmd_groups, record_builtin_reply, record_sticker_reply
+from app.voice import transcribe_voice
 from app.typing_sim import simulate_typing
 from app.announce import cmd_announcegroups, cmd_announceusers
 
