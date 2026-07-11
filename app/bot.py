@@ -249,6 +249,41 @@ async def cmd_story(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# ── Voice handler ───────────────────────────────────────────────────────────
+
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Transcribe voice message and process as normal text."""
+    if not update.message or not update.message.voice:
+        return
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id, action=ChatAction.TYPING
+    )
+
+    # Download voice file
+    try:
+        voice_file = await context.bot.get_file(update.message.voice.file_id)
+        file_bytes = await voice_file.download_as_bytearray()
+    except Exception as e:
+        logger.warning(f"[voice] download failed: {e}")
+        await update.message.reply_text("couldn't download your voice message, try again")
+        return
+
+    # Transcribe
+    text = await transcribe_voice(bytes(file_bytes))
+    if not text:
+        await update.message.reply_text("couldn't understand that, try again or type it")
+        return
+
+    # Show what was heard
+    await update.message.reply_text(f"🎤 {text}")
+
+    # Inject transcribed text into update and process normally
+    # We fake a text message and call handle_message logic directly
+    update.message.text = text
+    await handle_message(update, context)
+
+
 # ── Sticker handler ───────────────────────────────────────────────────────────
 
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -598,7 +633,10 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(cb_tod,  pattern=r"^tod:"))
     app.add_handler(CallbackQueryHandler(cb_wyr,  pattern=r"^wyr:"))
 
-    app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
+    
+app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+
+app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     app.job_queue.run_repeating(job_proactive, interval=24 * 3600, first=300)
