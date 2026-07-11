@@ -629,7 +629,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("stopgame",  cmd_stopgame,  filters=group_filter))
 
     # Callbacks
-        app.add_handler(CallbackQueryHandler(cb_game, pattern=r"^game:"))
+    app.add_handler(CallbackQueryHandler(cb_game, pattern=r"^game:"))
     app.add_handler(CallbackQueryHandler(cb_tod, pattern=r"^tod:"))
     app.add_handler(CallbackQueryHandler(cb_wyr, pattern=r"^wyr:"))
 
@@ -640,7 +640,6 @@ def build_application() -> Application:
     app.job_queue.run_repeating(job_proactive, interval=24 * 3600, first=300)
 
     return app
-
 
 async def set_bot_commands(app: Application):
     from telegram import BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
