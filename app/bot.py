@@ -278,10 +278,37 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Show what was heard
     await update.message.reply_text(f"🎤 {text}")
 
-    # Inject transcribed text into update and process normally
-    # We fake a text message and call handle_message logic directly
-    update.message.text = text
-    await handle_message(update, context)
+    # Process transcribed text through the AI directly
+    from app.language import detect_language
+    from app.emotions import detect_emotion
+    from app.llm import get_ai_response
+
+    user = update.effective_user
+    lang_code, lang_label = detect_language(text)
+    emotion = detect_emotion(text)
+
+    async with AsyncSessionLocal() as db:
+        from app.crud import get_user_personality, get_user_memory, get_recent_history, save_message
+        personality = await get_user_personality(db, user.id)
+        user_memory = await get_user_memory(db, user.id)
+        history = await get_recent_history(db, user.id, limit=8)
+        await save_message(db, user.id, "user", text, lang_code, emotion)
+
+    reply = await get_ai_response(
+        user_message=text,
+        history=history,
+        lang_code=lang_code,
+        lang_label=lang_label,
+        personality=personality,
+        emotion=emotion,
+        user_memory=user_memory,
+    )
+
+    async with AsyncSessionLocal() as db:
+        from app.crud import save_message
+        await save_message(db, user.id, "assistant", reply, lang_code)
+
+    await update.message.reply_text(reply)
 
 
 # ── Sticker handler ───────────────────────────────────────────────────────────
