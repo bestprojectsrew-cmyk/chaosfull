@@ -559,8 +559,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with AsyncSessionLocal() as db:
         await save_message(db, user.id, "assistant", reply, lang_code)
 
-    await _send(update, context, reply)
+    # Random voice reply — once every VOICE_RANDOM_EVERY messages per chat
+    chat_id = update.effective_chat.id
+    _voice_message_counter[chat_id] = _voice_message_counter.get(chat_id, 0) + 1
+    if _voice_message_counter[chat_id] >= VOICE_RANDOM_EVERY:
+        _voice_message_counter[chat_id] = 0
+        audio = await text_to_voice(reply, lang_code)
+        if audio:
+            await send_voice_reply(update, audio)
+            return
 
+    await _send(update, context, reply)
 
 MAX_HISTORY_DB = 8
 
