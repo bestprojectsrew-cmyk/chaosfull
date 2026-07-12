@@ -275,9 +275,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("couldn't understand that, try again or type it")
         return
 
-    # Show what was heard
-    await update.message.reply_text(f"🎤 {text}")
-
     # Process transcribed text through the AI directly
     from app.language import detect_language
     from app.emotions import detect_emotion
