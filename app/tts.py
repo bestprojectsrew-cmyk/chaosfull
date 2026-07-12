@@ -86,12 +86,26 @@ async def _gtts_tts(text: str, lang_code: str) -> bytes | None:
         return None
 
 
+MAX_TTS_CHARS = 200  # keep voice replies short and natural
+
 async def text_to_voice(text: str, lang_code: str = "en") -> bytes | None:
     """
     Convert text to audio bytes.
+    Trims to MAX_TTS_CHARS so voice replies stay short.
     Uses Groq Orpheus for English/Arabic (natural).
     Falls back to gTTS for other languages.
     """
+    # Trim to keep voice short and natural
+    if len(text) > MAX_TTS_CHARS:
+        # Cut at last sentence end within limit
+        trimmed = text[:MAX_TTS_CHARS]
+        for punct in (".", "!", "?", "😭", "💀"):
+            idx = trimmed.rfind(punct)
+            if idx > 80:
+                trimmed = trimmed[:idx + 1]
+                break
+        text = trimmed
+
     # Try Groq TTS first for supported languages
     if lang_code in GROQ_TTS_LANGS:
         audio = await _groq_tts(text, lang_code)
@@ -100,7 +114,6 @@ async def text_to_voice(text: str, lang_code: str = "en") -> bytes | None:
 
     # Fallback to gTTS
     return await _gtts_tts(text, lang_code)
-
 
 async def send_voice_reply(update, audio_bytes: bytes) -> bool:
     """Send audio bytes as a Telegram voice message."""
