@@ -47,6 +47,7 @@ from app.moderation.admin_panel import cmd_panel, cb_panel
 from app.builtin_replies import is_name_trigger
 from app.stats import cmd_botstats, cmd_users, record_message,cmd_groups, record_builtin_reply, record_sticker_reply
 from app.voice import transcribe_voice
+from app.tts import text_to_voice, send_voice_reply
 from app.typing_sim import simulate_typing
 from app.announce import cmd_announcegroups, cmd_announceusers
 
@@ -54,6 +55,8 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN", "")
 MEMORY_EXTRACT_EVERY = 5   # run memory extraction every N messages
+_voice_message_counter: dict[int, int] = {}  # chat_id → message count
+VOICE_RANDOM_EVERY = 100  # send random voice reply once every N messages per chat
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -305,7 +308,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         from app.crud import save_message
         await save_message(db, user.id, "assistant", reply, lang_code)
 
-    await update.message.reply_text(reply)
+    # Reply in voice since user sent voice
+    audio = await text_to_voice(reply, lang_code)
+    if audio:
+        await send_voice_reply(update, audio)
+    else:
+        await update.message.reply_text(reply)
 
 
 # ── Sticker handler ───────────────────────────────────────────────────────────
