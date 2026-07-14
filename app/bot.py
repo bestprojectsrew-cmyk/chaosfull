@@ -255,32 +255,24 @@ async def cmd_story(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── Inline Generators ───────────────────────────────────────────────────────────
 
 async def handle_inline(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle inline queries — @botname user shows 49 funny result cards."""
     from telegram import InlineQueryResultArticle, InputTextMessageContent
-    import uuid
 
     query = update.inline_query
+
     if query is None:
         return
 
-    name = query.query.strip() or "you"
-    results_data = generate_all(name)
-
-    results = []
-    for item in results_data:
-        results.append(
+    await query.answer(
+        results=[
             InlineQueryResultArticle(
-                id=str(uuid.uuid4()),
-                title=item["title"],
-                description=item["body"].split("\n\n")[1][:80] if "\n\n" in item["body"] else "",
+                id="1",
+                title="Inline Test",
+                description="If you see this, inline works.",
                 input_message_content=InputTextMessageContent(
-                    message_text=item["body"],
+                    "✅ Inline mode works!"
                 ),
             )
-        )
-
-    await query.answer(
-        results=results[:50],
+        ],
         cache_time=0,
         is_personal=True,
     )
