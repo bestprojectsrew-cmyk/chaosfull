@@ -10,7 +10,7 @@ from app.owner import is_owner
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
-    CallbackQueryHandler, filters, ContextTypes,
+    CallbackQueryHandler, InlineQueryHandler, filters, ContextTypes,
 )
 from telegram.constants import ChatAction
 
@@ -47,6 +47,7 @@ from app.moderation.admin_panel import cmd_panel, cb_panel
 from app.builtin_replies import is_name_trigger
 from app.stats import cmd_botstats, cmd_users, record_message,cmd_groups, record_builtin_reply, record_sticker_reply
 from app.voice import transcribe_voice
+from app.inline_generators import generate_all
 from app.tts import text_to_voice, send_voice_reply
 from app.typing_sim import simulate_typing
 from app.announce import cmd_announcegroups, cmd_announceusers
@@ -251,6 +252,38 @@ async def cmd_story(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📖 Chaoz's Journal\n\n" + story
     )
 
+# ── Inline Generators ───────────────────────────────────────────────────────────
+
+async def handle_inline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle inline queries — @botname user shows 49 funny result cards."""
+    from telegram import InlineQueryResultArticle, InputTextMessageContent
+    import uuid
+
+    query = update.inline_query
+    if query is None:
+        return
+
+    name = query.query.strip() or "you"
+    results_data = generate_all(name)
+
+    results = []
+    for item in results_data:
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid.uuid4()),
+                title=item["title"],
+                description=item["body"].split("\n\n")[1][:80] if "\n\n" in item["body"] else "",
+                input_message_content=InputTextMessageContent(
+                    message_text=item["body"],
+                ),
+            )
+        )
+
+    await query.answer(
+        results=results[:50],
+        cache_time=0,
+        is_personal=True,
+    )
 
 # ── Voice handler ───────────────────────────────────────────────────────────
 
@@ -674,6 +707,7 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(cb_tod, pattern=r"^tod:"))
     app.add_handler(CallbackQueryHandler(cb_wyr, pattern=r"^wyr:"))
 
+    app.add_handler(InlineQueryHandler(handle_inline))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
     app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
