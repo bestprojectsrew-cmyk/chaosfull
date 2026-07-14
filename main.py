@@ -34,18 +34,28 @@ async def lifespan(app: FastAPI):
     await set_bot_commands(ptb_app)
 
     webhook_full = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
+
     await ptb_app.bot.set_webhook(
         url=webhook_full,
-        allowed_updates=["message", "callback_query"],
+        allowed_updates=[
+            "message",
+            "edited_message",
+            "callback_query",
+            "inline_query",
+            "chosen_inline_result",
+        ],
         drop_pending_updates=True,
     )
+
     logger.info(f"Webhook set: {webhook_full} ✓")
 
     await ptb_app.start()
     logger.info("CHAOS bot v2 is LIVE 🔥")
+
     yield
 
     logger.info("Shutting down...")
+
     await ptb_app.stop()
     await ptb_app.shutdown()
 
