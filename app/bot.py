@@ -699,7 +699,9 @@ def build_application() -> Application:
     app.add_handler(CallbackQueryHandler(cb_tod, pattern=r"^tod:"))
     app.add_handler(CallbackQueryHandler(cb_wyr, pattern=r"^wyr:"))
 
+    logger.warning("INLINE HANDLER CALLED")
     app.add_handler(InlineQueryHandler(handle_inline))
+    
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
     app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
