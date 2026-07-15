@@ -256,25 +256,10 @@ async def cmd_story(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_inline(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle inline queries — @botname John → shows 49 funny result cards."""
-    from telegram import InlineQueryResultArticle, InputTextMessageContent
-    import uuid
-
-    query = update.inline_query
-    if query is None:
-        return
-
-    name = query.query.strip() or "you"
-
-    results_data = generate_all(name)
-
-    results = []
-    for item in results_data:
-        results.append(
-            InlineQueryResultArticle(
+    from telegram import InlineQueryResultArticle(
                 id=str(uuid.uuid4()),
-                title=item["title"],
-                description=item["body"].split("\n\n")[1][:80] if "\n\n" in item["body"] else "",
-                thumbnail_url=None,
+                title=item.get("preview_title", item["title"]),
+                description=item.get("preview_description", "Tap to reveal."),
                 input_message_content=InputTextMessageContent(
                     message_text=item["body"],
                 ),
