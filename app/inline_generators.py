@@ -575,8 +575,11 @@ async def generate_all(name: str) -> list[dict]:
     """
     Generate all 49 cards for a name.
     Scores are deterministic per name.
-    Reasons are AI-generated fresh every call.
+    Preview appears instantly (no AI).
+    AI reasons are generated when the message is sent after clicking.
     """
     scores = _get_scores(name)
-    reasons = await _ai_generate_reasons(name, scores)
-    return _build_cards(name, scores, reasons)
+    # No AI call here — inline must respond in under 10 seconds
+    # Fallback reasons used for preview, real reasons come from body text
+    cards = _build_cards(name, scores, {})
+    return cards
