@@ -1,585 +1,564 @@
 """
-inline_generators.py — 49 funny Gen Z inline result generators.
+inline_generators.py — Chaos Engine inline generator.
 
-Scores/percentages are seeded by name (consistent feel).
-Funny reasons are AI-generated fresh every time (never boring).
-
-Architecture:
-  1. generate_scores(name) — instant, deterministic per name
-  2. generate_reasons(name, scores) — one AI call, returns all 49 reasons
-  3. build_results(name, scores, reasons) — combines into final cards
+Pure Python procedural generation. Zero AI, zero API, zero HTTP.
+Billions of possible combinations. Results almost never repeat.
 """
 
 import random
 import hashlib
-import logging
-import json
-import re
-
-logger = logging.getLogger(__name__)
+import string
+from datetime import datetime, timedelta
 
 
-def _seed(name: str, salt: str) -> None:
+def _stable_pct(name: str, salt: str, lo: int = 0, hi: int = 100) -> int:
     h = int(hashlib.md5(f"{name}{salt}".encode()).hexdigest(), 16)
-    random.seed(h)
+    return lo + (h % (hi - lo + 1))
 
 
-def _pct(name: str, salt: str, lo: int = 0, hi: int = 100) -> int:
-    _seed(name, salt)
-    return random.randint(lo, hi)
+def _case_id() -> str:
+    return "CASE-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
-def _pick(name: str, salt: str, options: list):
-    _seed(name, salt)
-    return random.choice(options)
+EVENTS = [
+    "walked into a Costco", "entered a library", "joined a Zoom call",
+    "appeared at a wedding", "showed up at a funeral", "entered a McDonald's",
+    "walked past a police station", "joined a Discord server",
+    "entered a hospital", "appeared in a courtroom", "walked into IKEA",
+    "joined a book club", "entered a gym", "showed up at a family reunion",
+    "walked into a government building", "appeared on live TV",
+    "entered a casino", "joined a therapy session", "walked into a church",
+    "appeared at a press conference", "entered a laboratory",
+]
+
+REACTIONS = [
+    "everyone immediately left", "the staff called security",
+    "three people fainted", "a fire alarm went off",
+    "the Wi-Fi disconnected", "plants wilted",
+    "a priest started praying", "dogs started barking outside",
+    "the lights flickered", "someone started recording",
+    "NASA detected an anomaly", "the vibe shifted permanently",
+    "government satellites repositioned", "birds flew away",
+    "the manager was called", "insurance premiums went up",
+    "the stock market dipped slightly", "a therapist started crying",
+    "local authorities were notified", "the UN held an emergency meeting",
+    "scientists requested a sample", "historians took notes",
+    "three ambulances arrived", "the Pope was informed",
+]
+
+WITNESSES = [
+    "A local pigeon", "A traumatized barista", "An off-duty detective",
+    "A retired NASA engineer", "Three kindergarteners",
+    "A philosophy professor", "An overworked intern",
+    "A confused grandmother", "A Twitch streamer who was live",
+    "A man who was just trying to get milk", "A certified accountant",
+    "An emotional support animal", "A door-to-door salesman",
+    "A government agent who won't give their name",
+    "A cat who has seen things", "A Reddit moderator",
+    "An Amazon delivery driver", "A conspiracy theorist who was right",
+    "A surprisingly calm police officer",
+]
+
+WITNESS_QUOTES = [
+    "I've never recovered.", "I'm not legally allowed to comment.",
+    "I immediately deleted my social media.", "I still hear it sometimes.",
+    "My therapist said not to talk about it.", "I've requested a transfer.",
+    "I quit my job the next day.", "I've changed my name since.",
+    "I don't go outside anymore.", "I've been sober ever since.",
+    "The footage has been confiscated.", "I have a lawyer now.",
+    "I submitted a formal complaint.", "I need more time.",
+    "My insurance doesn't cover this.", "I wrote a book about it.",
+]
+
+DOCTOR_NOTES = [
+    "Patient presents with unidentifiable energy.",
+    "Symptoms cannot be reproduced in a laboratory setting.",
+    "Scans came back blank. All three times.",
+    "Diagnosis: existence itself.",
+    "Recommended treatment: unclear.",
+    "Staff requested not to be assigned this case again.",
+    "We've sent samples to five universities.",
+    "The hospital's Wi-Fi drops whenever patient enters.",
+    "Patient's aura caused equipment malfunction.",
+    "We've never seen numbers like this before.",
+    "Results redacted pending further investigation.",
+    "Insurance has already denied the claim.",
+    "Peer review requested. No volunteers yet.",
+]
+
+POLICE_NOTES = [
+    "Suspect remains at large.", "File sealed pending investigation.",
+    "Evidence is being analyzed.", "Three officers requested reassignment.",
+    "We don't fully understand what happened.",
+    "Security footage reviewed. No comment.",
+    "Subject cooperated. We wish they hadn't.",
+    "This has been escalated to federal level.",
+    "We've seen things. This is different.",
+    "Case transferred to a different department.",
+    "Charges pending. Lawyers are confused.",
+]
+
+ACHIEVEMENTS = [
+    "Achievement Unlocked: No Witnesses",
+    "Steam Achievement: Uninstalled Reality",
+    "Achievement Unlocked: The Floor Is Lava (Literally)",
+    "Steam Achievement: 500 Hours in Bed",
+    "Achievement Unlocked: Certified Local Legend",
+    "Steam Achievement: Escaped Tutorial",
+    "Achievement Unlocked: Final Boss Behavior",
+    "Steam Achievement: They Were Never The Same",
+    "Achievement Unlocked: Chaos Incarnate",
+    "Steam Achievement: Government Watchlist Member",
+    "Achievement Unlocked: NPC Awareness",
+    "Steam Achievement: Broke The Algorithm",
+    "Achievement Unlocked: Vibe Check Passed Violently",
+    "Steam Achievement: Main Character Activated",
+    "Achievement Unlocked: Witnesses Requested Therapy",
+]
+
+HEADLINES = [
+    "BREAKING: Local resident defies explanation",
+    "DEVELOPING: Scientists baffled by recent events",
+    "EXCLUSIVE: Government denies involvement",
+    "ALERT: Area person causes unprecedented situation",
+    "URGENT: Experts request further study",
+    "REPORT: Three witnesses hospitalized after encounter",
+    "CONFIRMED: The numbers don't lie",
+    "BREAKING: NASA monitoring situation closely",
+    "UPDATE: Insurance companies updating policies",
+    "LIVE: Local authorities overwhelmed",
+]
+
+THREAT_LEVELS = [
+    "GREEN", "YELLOW", "ORANGE", "RED", "PURPLE",
+    "BLACK", "ULTRAVIOLET", "BEYOND COMPREHENSION", "CLASSIFIED",
+]
+
+VERDICTS = [
+    "Guilty of existing.", "Not guilty. Somehow.",
+    "Case dismissed. Judge needed a break.",
+    "Verdict pending. Lawyers still arguing.",
+    "Acquitted on a technicality.",
+    "Sentenced to community service in another dimension.",
+    "The jury could not reach a consensus.",
+    "Charges upgraded three times during proceedings.",
+    "Judge recused themselves immediately.",
+    "Settlement reached. Amount undisclosed.",
+]
+
+GOVERNMENT_STATUSES = [
+    "Under observation.", "File flagged.",
+    "Do not approach without backup.",
+    "Listed as a person of interest.",
+    "Cleared. For now.", "Status: Complicated.",
+    "Known to authorities.", "Special designation assigned.",
+    "Monitoring ongoing.", "Classified. Ask your local representative.",
+]
+
+FAKE_REVIEWS = [
+    "1/5 — Would not recommend.",
+    "5/5 — Changed my life. Not for the better.",
+    "3/5 — Consistent. Unfortunately.",
+    "0/5 — I want a refund.",
+    "5/5 — An experience unlike any other.",
+    "2/5 — Showed up uninvited. Still here.",
+    "4/5 — Surprisingly effective.",
+    "1/5 — Filed a complaint. Pending review.",
+    "5/5 — Scientists are studying this.",
+]
+
+NPC_QUOTES = [
+    "Have you heard the news?", "Strange days, strange days.",
+    "I used to be an adventurer like you.",
+    "Be careful out there.", "I don't want any trouble.",
+    "The weather's been odd lately.", "I mind my own business.",
+    "My cousin's in the guard, you know.", "I have a family.",
+    "This is fine.", "I didn't see anything.",
+]
+
+RANDOM_ENDINGS = [
+    "The case remains open.", "No further questions.",
+    "We've said too much.", "This report is classified.",
+    "The truth is out there.", "Thank you for your cooperation.",
+    "Please do not share this document.",
+    "This has been peer reviewed. Unfortunately.",
+    "The simulation continues.", "End of report.",
+    "Filed under: Not Our Problem Anymore.",
+    "God help us all.", "We are all witnesses now.",
+    "This concludes our investigation.",
+]
+
+def _tier(pct: int) -> str:
+    if pct <= 15:  return "Absolutely cooked 💀"
+    if pct <= 35:  return "Embarrassing 😬"
+    if pct <= 60:  return "Average 🤷"
+    if pct <= 80:  return "Dangerous ⚠️"
+    if pct <= 95:  return "Legendary 🔥"
+    return "Biblically insane 🌀"
 
 
-# ── Score generators (deterministic per name) ─────────────────────────────────
-
-def _get_scores(name: str) -> dict:
-    """Generate all numeric scores/values for a name. Always same for same name."""
-    _seed(name, "aura")
-    aura = random.randint(-99999, 99999)
-
-    _seed(name, "zombie")
-    zombie_days = random.randint(0, 847)
-
-    _seed(name, "iq")
-    iq = random.randint(12, 312)
-
-    _seed(name, "pp")
-    pp_size = round(random.uniform(0.1, 50.0), 1)
-
-    _seed(name, "coffee")
-    coffee_cups = random.randint(0, 12)
-
-    _seed(name, "screen")
-    screen_hours = round(random.uniform(4, 18), 1)
-
-    _seed(name, "sleep")
-    sleep_debt_hrs = random.randint(0, 847)
-
-    _seed(name, "meme_c")
-    meme_count = random.randint(50, 9999)
-
-    _seed(name, "yapper_w")
-    yapper_words = random.randint(500, 50000)
-
-    _seed(name, "anime_l")
-    anime_power_lvl = random.randint(1, 10000)
-
-    marvel_heroes = [
-        "Captain Microwave", "The Procrastinator", "WiFi Man",
-        "Nap King", "The Algorithm", "Battery Saver",
-        "Autocorrect", "The Overthinker",
+def _meta() -> str:
+    lines = [
+        f"Case ID: {_case_id()}",
+        f"Threat Level: {random.choice(THREAT_LEVELS)}",
+        f"Witness: {random.choice(WITNESSES)} — \"{random.choice(WITNESS_QUOTES)}\"",
+        random.choice(ACHIEVEMENTS),
+        f"📰 {random.choice(HEADLINES)}",
+        f"Review: {random.choice(FAKE_REVIEWS)}",
+        random.choice(RANDOM_ENDINGS),
     ]
-    dc_villains = [
-        "The Snooze Button", "Professor Low Battery", "The Roaming Charges",
-        "Captain Spoiler", "The Buffering", "Commitment Issues", "The Monday",
+    chosen = random.sample(lines, k=random.randint(3, 5))
+    return "\n".join(chosen)
+
+
+def _story(name: str, pct: int, topic: str) -> str:
+    event    = random.choice(EVENTS)
+    reaction = random.choice(REACTIONS)
+
+    if pct <= 35:
+        opener = f"{name}'s {topic} was measured. The results were concerning."
+    elif pct <= 60:
+        opener = f"{name} was tested for {topic}. Scientists took notes."
+    elif pct <= 80:
+        opener = f"{name} {event} and {reaction}."
+    else:
+        opener = f"{name} {event}. {reaction.capitalize()}. We cannot elaborate further."
+
+    middle = f"{random.choice(WITNESSES)} reported: \"{random.choice(WITNESS_QUOTES)}\""
+    note   = random.choice(DOCTOR_NOTES)
+    return f"{opener}\n{middle}\n{note}"
+
+
+# ── Generators ────────────────────────────────────────────────────────────────
+
+def gen_braincells(name):
+    pct = _stable_pct(name, "bc", 0, 14)
+    n   = random.randint(0, max(0, pct))
+    body = f"💀 Braincells Detector\n\n{name}'s braincell count: {n}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'braincell activity')}\n\n{_meta()}"
+    return {"emoji":"💀","preview_title":"💀 Braincells Detector","preview_description":f"Scan {name}'s braincell count.","title":f"💀 Braincells — {n} remaining","body":body}
+
+def gen_sigma(name):
+    pct = _stable_pct(name, "sig")
+    body = f"🗿 Sigma Meter\n\n{name}'s sigma level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'sigma energy')}\n\n{_meta()}"
+    return {"emoji":"🗿","preview_title":"🗿 Sigma Meter","preview_description":f"Measure {name}'s sigma level.","title":f"🗿 Sigma — {pct}%","body":body}
+
+def gen_aura(name):
+    pct   = _stable_pct(name, "aura")
+    score = random.randint(-99999, 99999)
+    sign  = "+" if score > 0 else ""
+    body  = f"✨ Aura Scanner\n\n{name}'s aura score: {sign}{score:,}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'aura')}\n\nGovernment Status: {random.choice(GOVERNMENT_STATUSES)}\n{_meta()}"
+    return {"emoji":"✨","preview_title":"✨ Aura Scanner","preview_description":f"Reveal {name}'s hidden aura.","title":f"✨ Aura — {sign}{score:,}","body":body}
+
+def gen_npc(name):
+    pct = _stable_pct(name, "npc", 40, 100)
+    body = f"🤖 NPC Scanner\n\n{name} is {pct}% NPC.\nStatus: {_tier(pct)}\n\nDetected dialogue: \"{random.choice(NPC_QUOTES)}\"\n{_story(name, pct, 'NPC behavior')}\n\nQuest available: No\n{_meta()}"
+    return {"emoji":"🤖","preview_title":"🤖 NPC Scanner","preview_description":f"Run NPC analysis on {name}.","title":f"🤖 NPC — {pct}%","body":body}
+
+def gen_rizz(name):
+    pct = _stable_pct(name, "rizz")
+    body = f"😎 Rizz Score\n\n{name}'s rizz: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'rizz')}\n\nVerdict: {random.choice(VERDICTS)}\n{_meta()}"
+    return {"emoji":"😎","preview_title":"😎 Rizz Score","preview_description":f"Score {name}'s rizz.","title":f"😎 Rizz — {pct}%","body":body}
+
+def gen_delulu(name):
+    pct = _stable_pct(name, "del")
+    body = f"🌸 Delulu Index\n\n{name}'s delulu level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'delusion')}\n\nDoctor's note: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🌸","preview_title":"🌸 Delulu Index","preview_description":f"Measure {name}'s delulu level.","title":f"🌸 Delulu — {pct}%","body":body}
+
+def gen_villain(name):
+    pct = _stable_pct(name, "vil")
+    body = f"😈 Villain Arc Detector\n\n{name}'s villain arc: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'villain energy')}\n\nPolice notes: {random.choice(POLICE_NOTES)}\n{_meta()}"
+    return {"emoji":"😈","preview_title":"😈 Villain Arc","preview_description":f"Detect {name}'s villain arc.","title":f"😈 Villain Arc — {pct}%","body":body}
+
+def gen_red_flag(name):
+    pct = _stable_pct(name, "rf")
+    body = f"🚩 Red Flag Meter\n\n{name}'s red flag level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'red flags')}\n\nVerdict: {random.choice(VERDICTS)}\n{_meta()}"
+    return {"emoji":"🚩","preview_title":"🚩 Red Flag Meter","preview_description":f"Scan {name} for red flags.","title":f"🚩 Red Flags — {pct}%","body":body}
+
+def gen_green_flag(name):
+    pct = _stable_pct(name, "gf")
+    body = f"💚 Green Flag Meter\n\n{name}'s green flag level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'green flags')}\n\nReview: {random.choice(FAKE_REVIEWS)}\n{_meta()}"
+    return {"emoji":"💚","preview_title":"💚 Green Flag Meter","preview_description":f"Scan {name} for green flags.","title":f"💚 Green Flags — {pct}%","body":body}
+
+def gen_luck(name):
+    pct = _stable_pct(name, "luck")
+    body = f"🍀 Daily Luck Reading\n\n{name}'s luck today: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'luck')}\n\nHeadline: {random.choice(HEADLINES)}\n{_meta()}"
+    return {"emoji":"🍀","preview_title":"🍀 Luck Today","preview_description":f"Check {name}'s luck today.","title":f"🍀 Luck — {pct}%","body":body}
+
+def gen_broke(name):
+    pct = _stable_pct(name, "brk", 10, 100)
+    body = f"💸 Broke Meter\n\n{name} is {pct}% broke.\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'financial stability')}\n\nBank's verdict: {random.choice(VERDICTS)}\n{_meta()}"
+    return {"emoji":"💸","preview_title":"💸 Broke Meter","preview_description":f"Check {name}'s financial status.","title":f"💸 Broke — {pct}%","body":body}
+
+def gen_zombie(name):
+    pct  = _stable_pct(name, "zmb")
+    days = random.randint(0, 1200)
+    body = f"🧟 Zombie Survival Report\n\n{name} would survive: {days} days\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'zombie survival')}\n\nCause of eventual death: {random.choice(EVENTS)}\n{_meta()}"
+    return {"emoji":"🧟","preview_title":"🧟 Zombie Survival","preview_description":f"Calculate {name}'s zombie survival time.","title":f"🧟 Survival — {days} days","body":body}
+
+def gen_mental_age(name):
+    pct = _stable_pct(name, "mage")
+    age = random.randint(4, 87)
+    body = f"🧠 Mental Age Calculator\n\n{name}'s mental age: {age}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'mental maturity')}\n\nDoctor's note: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🧠","preview_title":"🧠 Mental Age","preview_description":f"Calculate {name}'s mental age.","title":f"🧠 Mental Age — {age}","body":body}
+
+def gen_alien(name):
+    pct = _stable_pct(name, "ali", 5, 95)
+    body = f"👽 Alien DNA Scanner\n\n{name}'s alien DNA: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'alien origin')}\n\nGovernment Status: {random.choice(GOVERNMENT_STATUSES)}\n{_meta()}"
+    return {"emoji":"👽","preview_title":"👽 Alien DNA Scanner","preview_description":f"Scan {name}'s alien DNA.","title":f"👽 Alien DNA — {pct}%","body":body}
+
+def gen_monkey(name):
+    pct = _stable_pct(name, "mnk", 20, 99)
+    body = f"🐒 Monkey DNA Analysis\n\n{name}'s monkey DNA: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'primate behavior')}\n\nZoologist's report: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🐒","preview_title":"🐒 Monkey DNA","preview_description":f"Analyze {name}'s monkey DNA.","title":f"🐒 Monkey DNA — {pct}%","body":body}
+
+def gen_marvel(name):
+    heroes = [
+        ("Captain Microwave","Burns food unevenly from 400m","Foil"),
+        ("The Procrastinator","Defeats enemies eventually","Deadlines"),
+        ("WiFi Man","Unstoppable near routers","Walls"),
+        ("Nap King","Recharges in 17 minutes flat","Alarm clocks"),
+        ("The Algorithm","Knows your needs before you do","Ad blockers"),
+        ("Battery Saver","Survives on 1% indefinitely","Fast chargers"),
+        ("Autocorrect","Changes reality unpredictably","Spellcheck"),
+        ("The Overthinker","Sees 200 outcomes simultaneously","Deciding"),
+        ("Yelp Reviewer","One star destroys empires","Being ignored"),
+        ("The Passive Aggressor","Never raises voice. Wins always.","Direct confrontation"),
     ]
-    anime_powers = [
-        "Maximum Overthinking Jutsu", "Ultimate Bed Rot Form",
-        "Infinite Scroll Technique", "Zero Accountability Stance",
-        "Chronically Online Mode", "Selective Hearing Mastery",
-        "Last Minute Activation", "Main Character Delusion",
-        "Ghost Mode: Activated", "Chaos Energy Release",
+    hero, power, weakness = random.choice(heroes)
+    pct = _stable_pct(name, "mrv")
+    body = f"🦸 Marvel Hero Assignment\n\n{name} is: {hero}\nPower: {power}\nWeakness: {weakness}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'hero activity')}\n\n{_meta()}"
+    return {"emoji":"🦸","preview_title":"🦸 Marvel Hero Assignment","preview_description":f"Assign {name} a Marvel hero.","title":f"🦸 {hero}","body":body}
+
+def gen_dc(name):
+    villains = [
+        ("The Snooze Button","Returns every morning","Willpower"),
+        ("Professor Low Battery","Strikes at 1%","Chargers"),
+        ("The Roaming Charges","Ruins trips internationally","Wi-Fi"),
+        ("Captain Spoiler","Destroys joy effortlessly","Headphones"),
+        ("The Buffering","Freezes at peak moments","Good internet"),
+        ("Commitment Issues","Disappears strategically","Receipts"),
+        ("The Monday","Returns weekly without fail","Friday"),
+        ("Group Chat Muter","Silent. Informed. Dangerous.","Notifications"),
+        ("The Terms and Conditions","Never read. Always binding.","Skipping"),
     ]
-    gamer_ranks = [
-        "Iron IV", "Bronze III", "Silver II", "Gold I",
-        "Platinum", "Diamond", "Master", "Grandmaster",
-        "Challenger", "NPC Difficulty",
+    villain, power, weakness = random.choice(villains)
+    pct = _stable_pct(name, "dc")
+    body = f"🦹 DC Villain Assignment\n\n{name} is: {villain}\nPower: {power}\nWeakness: {weakness}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'villain activity')}\n\n{_meta()}"
+    return {"emoji":"🦹","preview_title":"🦹 DC Villain Assignment","preview_description":f"Assign {name} a DC villain.","title":f"🦹 {villain}","body":body}
+
+def gen_gyatt(name):
+    pct = _stable_pct(name, "gyt")
+    body = f"🍑 Gyatt Detector\n\n{name}'s gyatt reading: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'gyatt levels')}\n\nSeismograph: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🍑","preview_title":"🍑 Gyatt Detector","preview_description":f"Run gyatt analysis on {name}.","title":f"🍑 Gyatt — {pct}%","body":body}
+
+def gen_pp(name):
+    size = round(random.uniform(0.1, 50.0), 1)
+    pct  = _stable_pct(name, "pp")
+    body = f"📏 Totally Scientific PP Calculator\n\n{name}'s result: {size} cm\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'measurement')}\n\nLab report: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"📏","preview_title":"📏 PP Calculator","preview_description":f"Run scientific measurement on {name}.","title":f"📏 PP Size — {size} cm","body":body}
+
+def gen_clown(name):
+    pct = _stable_pct(name, "clwn")
+    body = f"🤡 Clown Meter\n\n{name}'s clown level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'clown behavior')}\n\nCircus HR: {random.choice(POLICE_NOTES)}\n{_meta()}"
+    return {"emoji":"🤡","preview_title":"🤡 Clown Meter","preview_description":f"Measure {name}'s clown energy.","title":f"🤡 Clown Level — {pct}%","body":body}
+
+def gen_crybaby(name):
+    pct = _stable_pct(name, "cry")
+    body = f"😭 Crybaby Meter\n\n{name}'s crybaby level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'emotional stability')}\n\nTherapist: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"😭","preview_title":"😭 Crybaby Meter","preview_description":f"Measure {name}'s crybaby level.","title":f"😭 Crybaby — {pct}%","body":body}
+
+def gen_rat(name):
+    pct = _stable_pct(name, "rat")
+    body = f"🐀 Rat Detector\n\n{name}'s rat energy: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'suspicious activity')}\n\nFBI notes: {random.choice(POLICE_NOTES)}\n{_meta()}"
+    return {"emoji":"🐀","preview_title":"🐀 Rat Detector","preview_description":f"Detect rat energy in {name}.","title":f"🐀 Rat Energy — {pct}%","body":body}
+
+def gen_feet(name):
+    pct = _stable_pct(name, "ft")
+    body = f"🦶 Feet Rating\n\n{name}'s feet rating: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'podiatric analysis')}\n\nPodiatrist: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🦶","preview_title":"🦶 Feet Rating","preview_description":f"Rate {name}'s feet scientifically.","title":f"🦶 Feet Rating — {pct}%","body":body}
+
+def gen_smell(name):
+    pct = _stable_pct(name, "sml")
+    body = f"🧦 Smell Detector\n\n{name}'s smell level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'olfactory presence')}\n\nLab analysis: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🧦","preview_title":"🧦 Smell Detector","preview_description":f"Analyze {name}'s smell scientifically.","title":f"🧦 Smell Level — {pct}%","body":body}
+
+def gen_shower(name):
+    pct  = _stable_pct(name, "shwr")
+    days = random.randint(0, 14)
+    body = f"🚿 Shower Detector\n\n{name}'s last shower: {days} days ago\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'hygiene')}\n\nHealth department: {random.choice(POLICE_NOTES)}\n{_meta()}"
+    return {"emoji":"🚿","preview_title":"🚿 Shower Detector","preview_description":f"Check when {name} last showered.","title":f"🚿 Last Shower — {days} days ago","body":body}
+
+def gen_bedrot(name):
+    pct = _stable_pct(name, "bdr", 20, 100)
+    hrs = random.randint(8, 23)
+    body = f"🛏️ Bed Rot Detector\n\n{name}'s bed rot level: {pct}%\nHours in bed today: {hrs}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'bed rot')}\n\nDoctor: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🛏️","preview_title":"🛏️ Bed Rot Detector","preview_description":f"Measure {name}'s bed rot level.","title":f"🛏️ Bed Rot — {pct}%","body":body}
+
+def gen_fbi(name):
+    pct = _stable_pct(name, "fbi")
+    body = f"🚨 FBI Watchlist Scanner\n\n{name}'s threat level: {pct}%\nStatus: {_tier(pct)}\n\nCase ID: {_case_id()}\nClassification: {random.choice(THREAT_LEVELS)}\nAgent notes: {random.choice(POLICE_NOTES)}\nGovernment Status: {random.choice(GOVERNMENT_STATUSES)}\n{_meta()}"
+    return {"emoji":"🚨","preview_title":"🚨 FBI Watchlist Scanner","preview_description":f"Check if {name} is on the FBI watchlist.","title":f"🚨 FBI Threat — {pct}%","body":body}
+
+def gen_skill_issue(name):
+    pct = _stable_pct(name, "ski")
+    body = f"💀 Skill Issue Meter\n\n{name}'s skill issue level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'skill deficiency')}\n\nGame review: {random.choice(FAKE_REVIEWS)}\n{random.choice(ACHIEVEMENTS)}\n{_meta()}"
+    return {"emoji":"💀","preview_title":"💀 Skill Issue Meter","preview_description":f"Measure {name}'s skill issue level.","title":f"💀 Skill Issue — {pct}%","body":body}
+
+def gen_simp(name):
+    pct = _stable_pct(name, "smp")
+    body = f"💘 Simp Detector\n\n{name}'s simp level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'simping activity')}\n\nWitness: {random.choice(WITNESSES)} — \"{random.choice(WITNESS_QUOTES)}\"\n{_meta()}"
+    return {"emoji":"💘","preview_title":"💘 Simp Detector","preview_description":f"Detect simp energy in {name}.","title":f"💘 Simp Level — {pct}%","body":body}
+
+def gen_goblin(name):
+    pct = _stable_pct(name, "gbl")
+    body = f"🧌 Goblin Mode Detector\n\n{name}'s goblin level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'goblin behavior')}\n\nZoologist: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🧌","preview_title":"🧌 Goblin Mode Detector","preview_description":f"Detect goblin mode in {name}.","title":f"🧌 Goblin Level — {pct}%","body":body}
+
+def gen_menace(name):
+    pct = _stable_pct(name, "mnc")
+    body = f"🧨 Menace Level\n\n{name}'s menace level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'menace activity')}\n\nPolice report: {random.choice(POLICE_NOTES)}\n{_meta()}"
+    return {"emoji":"🧨","preview_title":"🧨 Menace Level","preview_description":f"Measure {name}'s menace to society.","title":f"🧨 Menace — {pct}%","body":body}
+
+def gen_chaos(name):
+    pct = _stable_pct(name, "chs")
+    body = f"💥 Chaos Level\n\n{name}'s chaos energy: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'chaos')}\n\nEmergency services: {random.choice(POLICE_NOTES)}\n{random.choice(ACHIEVEMENTS)}\n{_meta()}"
+    return {"emoji":"💥","preview_title":"💥 Chaos Level","preview_description":f"Measure {name}'s chaos energy.","title":f"💥 Chaos — {pct}%","body":body}
+
+def gen_mutation(name):
+    pct = _stable_pct(name, "mut")
+    mutations = [
+        "Extra toe", "Mild electrokinesis", "Immune to Mondays",
+        "Can hear Wi-Fi", "Slightly magnetic", "Bioluminescent under stress",
+        "Speaks to pigeons", "Predicts microwave beeps", "Coffee immunity",
     ]
-    mc_mains = ["McDouble", "Big Mac", "Quarter Pounder", "McChicken",
-                "Filet-O-Fish", "10pc Nuggets", "McRib"]
-    mc_sides = ["large fries", "medium fries", "apple slices", "hash brown"]
-    mc_drinks = ["large Coke", "McFlurry", "large sweet tea", "Sprite", "water"]
-    screen_apps = ["TikTok", "Instagram", "YouTube", "Discord",
-                   "Reddit", "Telegram", "Twitter/X"]
+    mutation = random.choice(mutations)
+    body = f"🧪 Mutation Detector\n\n{name}'s mutation level: {pct}%\nDetected: {mutation}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'genetic mutation')}\n\nLab notes: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🧪","preview_title":"🧪 Mutation Detector","preview_description":f"Scan {name} for mutations.","title":f"🧪 Mutation — {pct}%","body":body}
 
-    import datetime
-    today = datetime.date.today().isoformat()
-    _seed(name + today, "luck")
-    luck_today = random.randint(0, 100)
-    _seed(name + today, "grass")
-    grass_count = random.randint(0, 3)
+def gen_demon(name):
+    pct = _stable_pct(name, "dmn")
+    body = f"👹 Demon Level\n\n{name}'s demon energy: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'demonic presence')}\n\nPriest's notes: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"👹","preview_title":"👹 Demon Level","preview_description":f"Measure {name}'s demon energy.","title":f"👹 Demon Level — {pct}%","body":body}
 
-    return {
-        "braincells":       _pct(name, "braincells", 0, 14),
-        "sigma":            _pct(name, "sigma"),
-        "npc":              _pct(name, "npc", 40, 100),
-        "pp_size":          pp_size,
-        "gyatt":            _pct(name, "gyatt"),
-        "aura":             aura,
-        "broke":            _pct(name, "broke", 10, 100),
-        "monkey_dna":       _pct(name, "monkey", 20, 99),
-        "alien_dna":        _pct(name, "alien", 5, 95),
-        "mental_age":       _pct(name, "mental_age", 4, 87),
-        "villain_arc":      _pct(name, "villain"),
-        "delulu":           _pct(name, "delulu"),
-        "rizz":             _pct(name, "rizz"),
-        "red_flag":         _pct(name, "redflag"),
-        "green_flag":       _pct(name, "greenflag"),
-        "luck_today":       luck_today,
-        "billionaire":      _pct(name, "billionaire"),
-        "cooking":          _pct(name, "cooking"),
-        "zombie_days":      zombie_days,
-        "grass_count":      grass_count,
-        "iq":               iq,
-        "marvel_hero":      _pick(name, "marvel", marvel_heroes),
-        "dc_villain":       _pick(name, "dc", dc_villains),
-        "anime_power":      _pick(name, "anime_p", anime_powers),
-        "anime_power_lvl":  anime_power_lvl,
-        "cat_energy":       _pct(name, "cat"),
-        "dog_energy":       _pct(name, "dog"),
-        "gamer_rank":       _pick(name, "gamer_r", gamer_ranks),
-        "bed_rot":          _pct(name, "bedrot", 20, 100),
-        "coffee_cups":      coffee_cups,
-        "main_character":   _pct(name, "mainchar"),
-        "chaos_energy":     _pct(name, "chaos_e"),
-        "brainrot":         _pct(name, "brainrot"),
-        "yapper_pct":       _pct(name, "yapper"),
-        "yapper_words":     yapper_words,
-        "drama":            _pct(name, "drama"),
-        "sleep_debt":       sleep_debt_hrs,
-        "goblin":           _pct(name, "goblin"),
-        "meme_pct":         _pct(name, "meme"),
-        "meme_count":       meme_count,
-        "keyboard":         _pct(name, "keyboard"),
-        "menace":           _pct(name, "menace"),
-        "screen_hours":     screen_hours,
-        "screen_app":       _pick(name, "screen_a", screen_apps),
-        "penguin":          _pct(name, "penguin"),
-        "gremlin":          _pct(name, "gremlin"),
-        "feet":             _pct(name, "feet"),
-        "pizza_pct":        _pct(name, "pizza"),
-        "pizza_slices":     _pct(name, "pizza_s", 2, 847),
-        "goober":           _pct(name, "goober"),
-        "pp_size":          pp_size,
-        "mc_main":          _pick(name, "mc1", mc_mains),
-        "mc_side":          _pick(name, "mc2", mc_sides),
-        "mc_drink":         _pick(name, "mc3", mc_drinks),
-    }
+def gen_father(name):
+    pct = _stable_pct(name, "dad")
+    milk = random.choice(["Yes", "No", "Expired"])
+    body = f"📵 Father Return Probability\n\n{name}'s dad return chance: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'parental return')}\n\nMilk still warm: {milk}\n{_meta()}"
+    return {"emoji":"📵","preview_title":"📵 Father Return Probability","preview_description":f"Calculate if {name}'s dad comes back.","title":f"📵 Dad Return — {pct}%","body":body}
 
+def gen_mommy(name):
+    pct = _stable_pct(name, "mom")
+    body = f"🍼 Mommy Issues Meter\n\n{name}'s mommy issues: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'childhood experiences')}\n\nTherapist: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🍼","preview_title":"🍼 Mommy Issues Meter","preview_description":f"Measure {name}'s mommy issues.","title":f"🍼 Mommy Issues — {pct}%","body":body}
 
-# ── AI reason generation ───────────────────────────────────────────────────────
+def gen_alcohol(name):
+    pct   = _stable_pct(name, "alc")
+    pints = random.randint(0, 47)
+    body  = f"🍺 Alcohol Resistance\n\n{name}'s resistance: {pct}%\nEstimated capacity: {pints} pints\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'alcohol tolerance')}\n\nBartender: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🍺","preview_title":"🍺 Alcohol Resistance","preview_description":f"Test {name}'s alcohol resistance.","title":f"🍺 Alcohol Resistance — {pct}%","body":body}
 
-async def _ai_generate_reasons(name: str, scores: dict) -> dict:
-    """
-    One AI call generates all 49 funny reasons at once.
-    Returns dict of reason_key -> funny_text.
-    Falls back to generic funny text if AI fails.
-    """
-    from app import providers
+def gen_discord_mod(name):
+    pct     = _stable_pct(name, "dsc")
+    servers = random.randint(1, 847)
+    hours   = random.randint(8, 24)
+    body    = f"📱 Discord Mod Probability\n\n{name}'s Discord mod chance: {pct}%\nServer count: {servers}\nHours online today: {hours}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'moderation activity')}\n\nNPC Quote: \"{random.choice(NPC_QUOTES)}\"\n{_meta()}"
+    return {"emoji":"📱","preview_title":"📱 Discord Mod Probability","preview_description":f"Calculate {name}'s Discord mod probability.","title":f"📱 Discord Mod — {pct}%","body":body}
 
-    prompt = f"""You are generating funny Gen Z internet humor results for someone named "{name}".
+def gen_jail(name):
+    pct  = _stable_pct(name, "jl")
+    secs = random.randint(3, 847)
+    body = f"🚓 Jail Speedrun\n\n{name}'s jail speedrun: {pct}%\nPersonal record: {secs} seconds to first offense\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'criminal activity')}\n\nPolice notes: {random.choice(POLICE_NOTES)}\nVerdict: {random.choice(VERDICTS)}\n{_meta()}"
+    return {"emoji":"🚓","preview_title":"🚓 Jail Speedrun","preview_description":f"Calculate {name}'s jail speedrun time.","title":f"🚓 Jail Speedrun — {pct}%","body":body}
 
-Generate a SHORT funny reason/explanation for each of these results. 
-Each reason must be 1 sentence max. Absurd, Gen Z, brainrot humor.
-Make each one different and creative. Reference the name "{name}" naturally in some of them.
+def gen_main_char(name):
+    pct = _stable_pct(name, "mc")
+    body = f"🎰 Main Character Luck\n\n{name}'s main character energy: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'main character behavior')}\n\nNarrative arc: {random.choice(ACHIEVEMENTS)}\nHeadline: {random.choice(HEADLINES)}\n{_meta()}"
+    return {"emoji":"🎰","preview_title":"🎰 Main Character Luck","preview_description":f"Check {name}'s main character energy.","title":f"🎰 Main Character — {pct}%","body":body}
 
-Results to explain:
-1. braincells_reason — they have {scores['braincells']} braincells left
-2. sigma_reason — sigma level {scores['sigma']}%
-3. npc_reason — {scores['npc']}% NPC
-4. pp_reason — PP size {scores['pp_size']}cm (keep it funny not explicit)
-5. gyatt_reason — gyatt level {scores['gyatt']}%
-6. aura_reason — aura score {scores['aura']:,}
-7. broke_reason — {scores['broke']}% broke
-8. monkey_reason — {scores['monkey_dna']}% monkey DNA
-9. alien_reason — {scores['alien_dna']}% alien DNA
-10. mental_age_reason — mental age {scores['mental_age']}
-11. villain_reason — villain arc {scores['villain_arc']}%
-12. delulu_reason — delulu index {scores['delulu']}%
-13. rizz_reason — rizz score {scores['rizz']}%
-14. redflag_reason — red flag level {scores['red_flag']}%
-15. greenflag_reason — green flag level {scores['green_flag']}%
-16. luck_reason — luck today {scores['luck_today']}%
-17. billionaire_reason — billionaire chance {scores['billionaire']}%
-18. cooking_reason — cooking skill {scores['cooking']}%
-19. zombie_reason — zombie survival {scores['zombie_days']} days
-20. grass_reason — touched grass {scores['grass_count']} times today
-21. iq_reason — NASA IQ {scores['iq']}
-22. marvel_reason — marvel hero is {scores['marvel_hero']}
-23. dc_reason — DC villain is {scores['dc_villain']}
-24. anime_reason — anime power is {scores['anime_power']} at level {scores['anime_power_lvl']:,}
-25. cat_reason — cat energy {scores['cat_energy']}%
-26. dog_reason — dog energy {scores['dog_energy']}%
-27. gamer_reason — gamer rank {scores['gamer_rank']}
-28. bedrot_reason — bed rot {scores['bed_rot']}%
-29. coffee_reason — drinks {scores['coffee_cups']} cups of coffee daily
-30. mainchar_reason — main character energy {scores['main_character']}%
-31. chaos_reason — chaos energy {scores['chaos_energy']}%
-32. brainrot_reason — brainrot level {scores['brainrot']}%
-33. yapper_reason — professional yapper {scores['yapper_pct']}%, spoke {scores['yapper_words']:,} words today
-34. drama_reason — drama magnet {scores['drama']}%
-35. sleep_reason — owes {scores['sleep_debt']} hours of sleep
-36. goblin_reason — goblin level {scores['goblin']}%
-37. meme_reason — meme addiction {scores['meme_pct']}%, saved {scores['meme_count']:,} memes
-38. keyboard_reason — keyboard warrior {scores['keyboard']}%
-39. menace_reason — professional menace {scores['menace']}%
-40. screen_reason — {scores['screen_hours']}h screen time, mostly on {scores['screen_app']}
-41. penguin_reason — penguin compatibility {scores['penguin']}%
-42. gremlin_reason — gremlin level {scores['gremlin']}%
-43. feet_reason — feet enjoyer level {scores['feet']}%
-44. pizza_reason — pizza addiction {scores['pizza_pct']}%, eaten {scores['pizza_slices']} slices lifetime
-45. goober_reason — certified goober {scores['goober']}%
-46. secret_talent_reason — one sentence describing a random secret talent {name} has
-47. biggest_flex_reason — one sentence describing {name}'s biggest flex
-48. daily_curse_reason — one sentence curse for {name} today (something minor that will go wrong)
-49. mcdonalds_reason — a funny comment about their order: {scores['mc_main']}, {scores['mc_side']}, {scores['mc_drink']}
+def gen_aura_lost(name):
+    lost = random.randint(0, 999999)
+    pct  = _stable_pct(name, "auralost")
+    body = f"💀 Lifetime Aura Lost\n\n{name} has lost {lost:,} aura points in their lifetime.\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'aura loss')}\n\nInsurance claim: Denied\nWitness: {random.choice(WITNESSES)} — \"{random.choice(WITNESS_QUOTES)}\"\n{_meta()}"
+    return {"emoji":"💀","preview_title":"💀 Lifetime Aura Lost","preview_description":f"Calculate total aura {name} has lost.","title":f"💀 Aura Lost — {lost:,}","body":body}
 
-Return ONLY a JSON object with these 49 keys and their string values.
-No markdown, no explanation, just the JSON."""
+def gen_iq(name):
+    pct = _stable_pct(name, "iq")
+    iq  = random.randint(12, 312)
+    body = f"🚀 NASA IQ Test\n\n{name}'s IQ: {iq}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'intelligence')}\n\nNASA notes: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🚀","preview_title":"🚀 NASA IQ Test","preview_description":f"Run NASA IQ test on {name}.","title":f"🚀 IQ — {iq}","body":body}
 
-    try:
-        raw = await providers.chat(
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,
-            temperature=0.95,
-            tier="fast",
-        )
-        raw = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
-        reasons = json.loads(raw)
-        logger.info(f"[inline] AI generated {len(reasons)} reasons for '{name}'")
-        return reasons
-    except Exception as e:
-        logger.warning(f"[inline] AI reason generation failed: {e}")
-        return {}
+def gen_brainrot(name):
+    pct = _stable_pct(name, "brt")
+    body = f"🧠 Brainrot Meter\n\n{name}'s brainrot level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'brainrot')}\n\nDiagnosis: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"🧠","preview_title":"🧠 Brainrot Meter","preview_description":f"Measure {name}'s brainrot level.","title":f"🧠 Brainrot — {pct}%","body":body}
+
+def gen_yapper(name):
+    pct   = _stable_pct(name, "yap")
+    words = random.randint(500, 99999)
+    body  = f"🗣️ Professional Yapper Certification\n\n{name}'s yapper level: {pct}%\nWords spoken today: {words:,}\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'yapping')}\n\nAudience review: {random.choice(FAKE_REVIEWS)}\n{_meta()}"
+    return {"emoji":"🗣️","preview_title":"🗣️ Yapper Certification","preview_description":f"Certify {name} as a professional yapper.","title":f"🗣️ Yapper — {pct}%","body":body}
+
+def gen_drama(name):
+    pct = _stable_pct(name, "drm")
+    orders = random.randint(0, 7)
+    body = f"🎭 Drama Magnet Index\n\n{name}'s drama attraction: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'drama')}\n\nRestraining orders filed: {orders}\n{_meta()}"
+    return {"emoji":"🎭","preview_title":"🎭 Drama Magnet","preview_description":f"Measure {name}'s drama attraction.","title":f"🎭 Drama Magnet — {pct}%","body":body}
+
+def gen_keyboard(name):
+    pct = _stable_pct(name, "kbw")
+    body = f"⌨️ Keyboard Warrior Level\n\n{name}'s keyboard warrior level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'online combat')}\n\nArguments won: 0\nArguments had: {random.randint(47, 9999)}\n{_meta()}"
+    return {"emoji":"⌨️","preview_title":"⌨️ Keyboard Warrior","preview_description":f"Measure {name}'s keyboard warrior level.","title":f"⌨️ Keyboard Warrior — {pct}%","body":body}
+
+def gen_sleep(name):
+    pct  = _stable_pct(name, "slp")
+    debt = random.randint(0, 1200)
+    body = f"😴 Sleep Debt Calculator\n\n{name} owes sleep: {debt} hours\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'sleep deprivation')}\n\nDoctor: {random.choice(DOCTOR_NOTES)}\n{_meta()}"
+    return {"emoji":"😴","preview_title":"😴 Sleep Debt","preview_description":f"Calculate {name}'s sleep debt.","title":f"😴 Sleep Debt — {debt} hrs","body":body}
+
+def gen_meme(name):
+    pct   = _stable_pct(name, "mme")
+    count = random.randint(500, 99999)
+    pct2  = random.randint(80, 99)
+    body  = f"😂 Meme Addiction Report\n\n{name}'s meme addiction: {pct}%\nMemes saved: {count:,}\nCamera roll: {pct2}% memes\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'meme consumption')}\n\n{_meta()}"
+    return {"emoji":"😂","preview_title":"😂 Meme Addiction","preview_description":f"Assess {name}'s meme addiction.","title":f"😂 Meme Addict — {pct}%","body":body}
+
+def gen_penguin(name):
+    pct = _stable_pct(name, "png")
+    body = f"🐧 Penguin Compatibility Test\n\n{name}'s penguin compatibility: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'penguin relations')}\n\nPenguin council verdict: {random.choice(VERDICTS)}\n{_meta()}"
+    return {"emoji":"🐧","preview_title":"🐧 Penguin Compatibility","preview_description":f"Test {name}'s penguin compatibility.","title":f"🐧 Penguin Compat — {pct}%","body":body}
+
+def gen_goober(name):
+    pct = _stable_pct(name, "gbr")
+    body = f"🤪 Certified Goober Test\n\n{name}'s goober level: {pct}%\nStatus: {_tier(pct)}\n\n{_story(name, pct, 'goober behavior')}\n\nCertification: {random.choice(ACHIEVEMENTS)}\n{_meta()}"
+    return {"emoji":"🤪","preview_title":"🤪 Certified Goober","preview_description":f"Certify {name} as a goober.","title":f"🤪 Goober — {pct}%","body":body}
 
 
-def _fallback_reason(key: str, name: str) -> str:
-    """Generic fallback if AI fails for a specific key."""
-    fallbacks = {
-        "braincells_reason": "The rest filed for early retirement.",
-        "sigma_reason": f"{name} has been studied by scientists.",
-        "npc_reason": "Dialogue options are limited.",
-        "pp_reason": "The measuring tape had thoughts.",
-        "gyatt_reason": "The detector needed recalibration.",
-        "aura_reason": "The vibe check has been submitted.",
-        "broke_reason": "The bank account sent thoughts and prayers.",
-        "monkey_reason": "Cannot resist a spinning chair.",
-        "alien_reason": "Area 51 has a file.",
-        "mental_age_reason": "Refuses to act their age. Thriving.",
-        "villain_reason": "The origin story is almost complete.",
-        "delulu_reason": "The delulu is the solulu.",
-        "rizz_reason": "Results were unexpected.",
-        "redflag_reason": "The flags are visible from space.",
-        "greenflag_reason": "Actually texts back. Rare.",
-        "luck_reason": "The universe has spoken.",
-        "billionaire_reason": "The math is not mathing.",
-        "cooking_reason": "The smoke alarm is their personal chef timer.",
-        "zombie_reason": "Surprisingly resourceful under pressure.",
-        "grass_reason": "The grass has mixed feelings.",
-        "iq_reason": "NASA is interested.",
-        "marvel_reason": "The powers are very specific.",
-        "dc_reason": "The origin story writes itself.",
-        "anime_reason": "The power level shocked even the author.",
-        "cat_reason": "Judges everything silently.",
-        "dog_reason": "Excited about everything always.",
-        "gamer_reason": "The teammates are always the problem.",
-        "bedrot_reason": "The bed has accepted them.",
-        "coffee_reason": "Their blood type is espresso.",
-        "mainchar_reason": "The narration never stops.",
-        "chaos_reason": "Plans somehow always work out.",
-        "brainrot_reason": "The internet did this.",
-        "yapper_reason": "Nobody asked but they answered anyway.",
-        "drama_reason": "Drama arrives uninvited. Always.",
-        "sleep_reason": "Running on spite and caffeine.",
-        "goblin_reason": "The snack stash is well hidden.",
-        "meme_reason": "Has a meme for every situation.",
-        "keyboard_reason": "Types aggressively when calm.",
-        "menace_reason": "A menace to society but make it cute.",
-        "screen_reason": "The screen time report was not opened.",
-        "penguin_reason": "The penguins have reviewed the application.",
-        "gremlin_reason": "Only functional after midnight.",
-        "feet_reason": "The algorithm has noticed.",
-        "pizza_reason": "Eats cold pizza for breakfast unironically.",
-        "goober_reason": "Irreversibly a goober. It's a compliment.",
-        "secret_talent_reason": f"{name} has a talent nobody expected.",
-        "biggest_flex_reason": f"{name}'s flex is surprisingly specific.",
-        "daily_curse_reason": "Something minor will go wrong today.",
-        "mcdonalds_reason": "The order reflects the soul.",
-    }
-    return fallbacks.get(key, "Results were inconclusive.")
+# ── Master list ───────────────────────────────────────────────────────────────
 
+ALL_GENERATORS = [
+    gen_braincells, gen_sigma, gen_aura, gen_npc, gen_rizz,
+    gen_delulu, gen_villain, gen_red_flag, gen_green_flag, gen_luck,
+    gen_broke, gen_zombie, gen_mental_age, gen_alien, gen_monkey,
+    gen_marvel, gen_dc, gen_gyatt, gen_pp, gen_clown,
+    gen_crybaby, gen_rat, gen_feet, gen_smell, gen_shower,
+    gen_bedrot, gen_fbi, gen_skill_issue, gen_simp, gen_goblin,
+    gen_menace, gen_chaos, gen_mutation, gen_demon, gen_father,
+    gen_mommy, gen_alcohol, gen_discord_mod, gen_jail, gen_main_char,
+    gen_aura_lost, gen_iq, gen_brainrot, gen_yapper, gen_drama,
+    gen_keyboard, gen_sleep, gen_meme, gen_penguin, gen_goober,
+]
 
-# ── Build final result cards ───────────────────────────────────────────────────
-
-def _build_cards(name: str, scores: dict, reasons: dict) -> list[dict]:
-    """Combine scores + AI reasons into final card list."""
-
-    def r(key):
-        return reasons.get(key) or _fallback_reason(key, name)
-
-    cards = [
-        {
-            "title": f"💀 Braincells Left — {scores['braincells']}",
-            "body": f"💀 Braincells Left\n\n{name}'s remaining braincells: {scores['braincells']}\n\n{r('braincells_reason')}",
-        },
-        {
-            "title": f"🗿 Sigma Meter — {scores['sigma']}%",
-            "body": f"🗿 Sigma Meter\n\n{name}'s sigma level: {scores['sigma']}%\n\n{r('sigma_reason')}",
-        },
-        {
-            "title": f"🤖 NPC Scanner — {scores['npc']}% NPC",
-            "body": f"🤖 NPC Scanner\n\n{name} is {scores['npc']}% NPC.\n\n{r('npc_reason')}",
-        },
-        {
-            "title": f"📏 PP Calculator™ — {scores['pp_size']} cm",
-            "body": f"📏 Totally Scientific PP Calculator™\n\n{name}'s result: {scores['pp_size']} cm\n\n{r('pp_reason')}",
-        },
-        {
-            "title": f"🍑 Gyatt Detector — {scores['gyatt']}%",
-            "body": f"🍑 Gyatt Detector\n\n{name}'s gyatt reading: {scores['gyatt']}%\n\n{r('gyatt_reason')}",
-        },
-        {
-            "title": f"✨ Aura Score — {scores['aura']:,}",
-            "body": f"✨ Aura Level\n\n{name}'s aura score: {scores['aura']:,}\n\n{r('aura_reason')}",
-        },
-        {
-            "title": f"💸 Broke Meter — {scores['broke']}%",
-            "body": f"💸 Broke Meter\n\n{name} is {scores['broke']}% broke.\n\n{r('broke_reason')}",
-        },
-        {
-            "title": f"🐒 Monkey DNA — {scores['monkey_dna']}%",
-            "body": f"🐒 Monkey DNA Analysis\n\n{name}'s monkey DNA: {scores['monkey_dna']}%\n\n{r('monkey_reason')}",
-        },
-        {
-            "title": f"👽 Alien DNA — {scores['alien_dna']}%",
-            "body": f"👽 Alien DNA Scanner\n\n{name}'s alien DNA: {scores['alien_dna']}%\n\n{r('alien_reason')}",
-        },
-        {
-            "title": f"🧠 Mental Age — {scores['mental_age']} years old",
-            "body": f"🧠 Mental Age Calculator\n\n{name}'s mental age: {scores['mental_age']}\n\n{r('mental_age_reason')}",
-        },
-        {
-            "title": f"😈 Villain Arc — {scores['villain_arc']}%",
-            "body": f"😈 Villain Arc Detector\n\n{name}'s villain arc: {scores['villain_arc']}%\n\n{r('villain_reason')}",
-        },
-        {
-            "title": f"🌸 Delulu Index — {scores['delulu']}%",
-            "body": f"🌸 Delulu Index\n\n{name}'s delulu level: {scores['delulu']}%\n\n{r('delulu_reason')}",
-        },
-        {
-            "title": f"😎 Rizz Score — {scores['rizz']}%",
-            "body": f"😎 Rizz Score\n\n{name}'s rizz: {scores['rizz']}%\n\n{r('rizz_reason')}",
-        },
-        {
-            "title": f"🚩 Red Flag Meter — {scores['red_flag']}%",
-            "body": f"🚩 Red Flag Meter\n\n{name}'s red flag level: {scores['red_flag']}%\n\n{r('redflag_reason')}",
-        },
-        {
-            "title": f"💚 Green Flag Meter — {scores['green_flag']}%",
-            "body": f"💚 Green Flag Meter\n\n{name}'s green flag level: {scores['green_flag']}%\n\n{r('greenflag_reason')}",
-        },
-        {
-            "title": f"🍀 Luck Today — {scores['luck_today']}%",
-            "body": f"🍀 Daily Luck Reading\n\n{name}'s luck today: {scores['luck_today']}%\n\n{r('luck_reason')}",
-        },
-        {
-            "title": f"💰 Billionaire Chance — {scores['billionaire']}%",
-            "body": f"💰 Billionaire Probability\n\n{name}'s chance: {scores['billionaire']}%\n\n{r('billionaire_reason')}",
-        },
-        {
-            "title": f"👨‍🍳 Cooking Skill — {scores['cooking']}%",
-            "body": f"👨‍🍳 Cooking Skill Assessment\n\n{name}'s cooking skill: {scores['cooking']}%\n\n{r('cooking_reason')}",
-        },
-        {
-            "title": f"🧟 Zombie Survival — {scores['zombie_days']} days",
-            "body": f"🧟 Zombie Apocalypse Survival\n\n{name} would survive: {scores['zombie_days']} days\n\n{r('zombie_reason')}",
-        },
-        {
-            "title": f"🌿 Grass Touched Today — {scores['grass_count']}x",
-            "body": f"🌿 Touch Grass Counter\n\n{name} touched grass today: {scores['grass_count']} times\n\n{r('grass_reason')}",
-        },
-        {
-            "title": f"🚀 NASA IQ — {scores['iq']}",
-            "body": f"🚀 NASA IQ Test Results\n\n{name}'s IQ: {scores['iq']}\n\n{r('iq_reason')}",
-        },
-        {
-            "title": f"🦸 Marvel Hero — {scores['marvel_hero']}",
-            "body": f"🦸 Marvel Hero Assignment\n\n{name} is: {scores['marvel_hero']}\n\n{r('marvel_reason')}",
-        },
-        {
-            "title": f"🦹 DC Villain — {scores['dc_villain']}",
-            "body": f"🦹 DC Villain Assignment\n\n{name} is: {scores['dc_villain']}\n\n{r('dc_reason')}",
-        },
-        {
-            "title": f"⚡ Anime Power — {scores['anime_power']}",
-            "body": f"⚡ Anime Power Level\n\n{name}'s power: {scores['anime_power']}\nPower level: {scores['anime_power_lvl']:,}\n\n{r('anime_reason')}",
-        },
-        {
-            "title": f"🌟 Secret Talent",
-            "body": f"🌟 Secret Talent Revealed\n\n{name}'s hidden talent:\n\n{r('secret_talent_reason')}",
-        },
-        {
-            "title": f"💪 Biggest Flex",
-            "body": f"💪 Biggest Flex Detected\n\n{name}'s biggest flex:\n\n{r('biggest_flex_reason')}",
-        },
-        {
-            "title": f"🪄 Daily Curse",
-            "body": f"🪄 Today's Curse for {name}:\n\n{r('daily_curse_reason')}",
-        },
-        {
-            "title": f"🍔 McDonald's Order",
-            "body": f"🍔 {name}'s McDonald's Order\n\n{scores['mc_main']}\n{scores['mc_side']}\n{scores['mc_drink']}\n\n{r('mcdonalds_reason')}",
-        },
-        {
-            "title": f"🐱 Cat Energy — {scores['cat_energy']}%",
-            "body": f"🐱 Cat Energy Reading\n\n{name}'s cat energy: {scores['cat_energy']}%\n\n{r('cat_reason')}",
-        },
-        {
-            "title": f"🐶 Dog Energy — {scores['dog_energy']}%",
-            "body": f"🐶 Dog Energy Reading\n\n{name}'s dog energy: {scores['dog_energy']}%\n\n{r('dog_reason')}",
-        },
-        {
-            "title": f"🎮 Gamer Rank — {scores['gamer_rank']}",
-            "body": f"🎮 Gamer Rank Assessment\n\n{name}'s rank: {scores['gamer_rank']}\n\n{r('gamer_reason')}",
-        },
-        {
-            "title": f"🛏️ Bed Rot % — {scores['bed_rot']}%",
-            "body": f"🛏️ Bed Rot Assessment\n\n{name}'s bed rot level: {scores['bed_rot']}%\n\n{r('bedrot_reason')}",
-        },
-        {
-            "title": f"☕ Coffee Addiction — {scores['coffee_cups']} cups/day",
-            "body": f"☕ Coffee Addiction Report\n\n{name} drinks: {scores['coffee_cups']} cups/day\n\n{r('coffee_reason')}",
-        },
-        {
-            "title": f"🎬 Main Character Energy — {scores['main_character']}%",
-            "body": f"🎬 Main Character Energy\n\n{name}'s level: {scores['main_character']}%\n\n{r('mainchar_reason')}",
-        },
-        {
-            "title": f"🌀 Chaos Energy — {scores['chaos_energy']}%",
-            "body": f"🌀 Chaos Energy Scan\n\n{name}'s chaos energy: {scores['chaos_energy']}%\n\n{r('chaos_reason')}",
-        },
-        {
-            "title": f"🧠 Brainrot Meter — {scores['brainrot']}%",
-            "body": f"🧠 Brainrot Level\n\n{name}'s brainrot: {scores['brainrot']}%\n\n{r('brainrot_reason')}",
-        },
-        {
-            "title": f"🗣️ Professional Yapper — {scores['yapper_pct']}%",
-            "body": f"🗣️ Yapper Certification\n\n{name}'s yapper level: {scores['yapper_pct']}%\nWords spoken today: {scores['yapper_words']:,}\n\n{r('yapper_reason')}",
-        },
-        {
-            "title": f"🎭 Drama Magnet — {scores['drama']}%",
-            "body": f"🎭 Drama Magnet Index\n\n{name}'s drama attraction: {scores['drama']}%\n\n{r('drama_reason')}",
-        },
-        {
-            "title": f"😴 Sleep Debt — {scores['sleep_debt']} hours owed",
-            "body": f"😴 Sleep Debt Calculator\n\n{name} owes sleep: {scores['sleep_debt']} hours\n\n{r('sleep_reason')}",
-        },
-        {
-            "title": f"👺 Goblin Meter — {scores['goblin']}%",
-            "body": f"👺 Goblin Level Assessment\n\n{name}'s goblin level: {scores['goblin']}%\n\n{r('goblin_reason')}",
-        },
-        {
-            "title": f"😂 Meme Addiction — {scores['meme_pct']}%",
-            "body": f"😂 Meme Addiction Report\n\n{name}'s addiction: {scores['meme_pct']}%\nMemes saved: {scores['meme_count']:,}\n\n{r('meme_reason')}",
-        },
-        {
-            "title": f"⌨️ Keyboard Warrior — {scores['keyboard']}%",
-            "body": f"⌨️ Keyboard Warrior Level\n\n{name}'s level: {scores['keyboard']}%\n\n{r('keyboard_reason')}",
-        },
-        {
-            "title": f"😤 Professional Menace — {scores['menace']}%",
-            "body": f"😤 Menace to Society Report\n\n{name}'s menace level: {scores['menace']}%\n\n{r('menace_reason')}",
-        },
-        {
-            "title": f"📱 Screen Time — {scores['screen_hours']}h",
-            "body": f"📱 Screen Time Report\n\n{name}'s daily screen time: {scores['screen_hours']} hours\nMost used: {scores['screen_app']}\n\n{r('screen_reason')}",
-        },
-        {
-            "title": f"🐧 Penguin Compatibility — {scores['penguin']}%",
-            "body": f"🐧 Penguin Compatibility Test\n\n{name}'s compatibility: {scores['penguin']}%\n\n{r('penguin_reason')}",
-        },
-        {
-            "title": f"😈 Gremlin Level — {scores['gremlin']}%",
-            "body": f"😈 Gremlin Level\n\n{name}'s gremlin energy: {scores['gremlin']}%\n\n{r('gremlin_reason')}",
-        },
-        {
-            "title": f"🦶 Feet Enjoyer Level — {scores['feet']}%",
-            "body": f"🦶 Feet Enjoyer Detector\n\n{name}'s level: {scores['feet']}%\n\n{r('feet_reason')}",
-        },
-        {
-            "title": f"🍕 Pizza Addiction — {scores['pizza_pct']}%",
-            "body": f"🍕 Pizza Addiction Report\n\n{name}'s addiction: {scores['pizza_pct']}%\nLifetime slices: {scores['pizza_slices']:,}\n\n{r('pizza_reason')}",
-        },
-        {
-            "title": f"🤪 Certified Goober — {scores['goober']}%",
-            "body": f"🤪 Goober Certification\n\n{name}'s goober level: {scores['goober']}%\n\nEvidence: {r('goober_reason')}",
-        },
-    ]
-    # Add generic previews to every card so scores are hidden until clicked
-    preview_descriptions = {
-        "💀": f"Tap to reveal {name}'s braincells.",
-        "🗿": f"Scan {name}'s sigma level.",
-        "🤖": f"Run NPC analysis on {name}.",
-        "📏": f"Scientific measurement for {name}.",
-        "🍑": f"Scan {name}'s gyatt level.",
-        "✨": f"Reveal {name}'s hidden aura.",
-        "💸": f"Check {name}'s financial status.",
-        "🐒": f"Analyze {name}'s monkey DNA.",
-        "👽": f"Scan {name}'s alien DNA.",
-        "🧠": f"Calculate {name}'s mental age.",
-        "😈": f"Detect {name}'s villain arc.",
-        "🌸": f"Measure {name}'s delulu index.",
-        "😎": f"Score {name}'s rizz.",
-        "🚩": f"Run red flag analysis on {name}.",
-        "💚": f"Run green flag analysis on {name}.",
-        "🍀": f"Check {name}'s luck today.",
-        "💰": f"Calculate {name}'s billionaire chance.",
-        "👨‍🍳": f"Assess {name}'s cooking skill.",
-        "🧟": f"Calculate {name}'s zombie survival.",
-        "🌿": f"Count {name}'s grass touches today.",
-        "🚀": f"Run NASA IQ test on {name}.",
-        "🦸": f"Assign {name} a Marvel hero.",
-        "🦹": f"Assign {name} a DC villain.",
-        "⚡": f"Reveal {name}'s anime power.",
-        "🌟": f"Reveal {name}'s secret talent.",
-        "💪": f"Reveal {name}'s biggest flex.",
-        "🪄": f"Reveal {name}'s daily curse.",
-        "🍔": f"Generate {name}'s McDonald's order.",
-        "🐱": f"Read {name}'s cat energy.",
-        "🐶": f"Read {name}'s dog energy.",
-        "🎮": f"Check {name}'s gamer rank.",
-        "🛏️": f"Measure {name}'s bed rot level.",
-        "☕": f"Assess {name}'s coffee addiction.",
-        "🎬": f"Measure {name}'s main character energy.",
-        "🌀": f"Scan {name}'s chaos energy.",
-        "🗣️": f"Certify {name} as a yapper.",
-        "🎭": f"Measure {name}'s drama attraction.",
-        "😴": f"Calculate {name}'s sleep debt.",
-        "👺": f"Measure {name}'s goblin level.",
-        "😂": f"Assess {name}'s meme addiction.",
-        "⌨️": f"Measure {name}'s keyboard warrior level.",
-        "😤": f"Rate {name}'s menace to society.",
-        "📱": f"Check {name}'s screen time.",
-        "🐧": f"Test {name}'s penguin compatibility.",
-        "🦶": f"Detect {name}'s feet enjoyer level.",
-        "🍕": f"Assess {name}'s pizza addiction.",
-        "🤪": f"Certify {name} as a goober.",
-    }
-
-    for card in cards:
-        emoji = card["title"].split()[0]
-        generic_name = card["title"].split("—")[0].strip() if "—" in card["title"] else card["title"]
-        card["preview_title"] = generic_name
-        card["preview_description"] = preview_descriptions.get(emoji, f"Tap to reveal {name}'s result.")
-
-    return cards
-
-
-# ── Main public function ───────────────────────────────────────────────────────
 
 async def generate_all(name: str) -> list[dict]:
     """
-    Generate all 49 cards for a name.
-    Scores are deterministic per name.
-    Preview appears instantly (no AI).
-    AI reasons are generated when the message is sent after clicking.
+    Generate all 50 cards for a name.
+    Instant — pure Python, zero API calls.
+    Percentages stable per name. Stories and metadata random every time.
     """
-    scores = _get_scores(name)
-    # No AI call here — inline must respond in under 10 seconds
-    # Fallback reasons used for preview, real reasons come from body text
-    cards = _build_cards(name, scores, {})
-    return cards
+    results = []
+    for gen in ALL_GENERATORS:
+        try:
+            results.append(gen(name))
+        except Exception:
+            pass
+    return results
