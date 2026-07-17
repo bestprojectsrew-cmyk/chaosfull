@@ -734,7 +734,7 @@ ALL_GENERATORS = [
     gen_gay, gen_ass, gen_braincells, gen_sigma, gen_rizz,
     gen_aura, gen_aura_lost, gen_delulu, gen_dick, gen_red_flag,
     gen_green_flag, gen_luck, gen_broke, gen_rich, gen_simp,
-    gen_wife, gen_husband, gen_nigga, gen_clown, gen_boobs,
+    gen_wife, gen_husband, gen_niggapass, gen_clown, gen_boobs,
     gen_rat, gen_freak, gen_goblin, gen_alien, gen_monkey,
     gen_iq, gen_nerd, gen_gamer, gen_sleep, gen_bedrot,
     gen_shower, gen_gay, gen_mcdonalds, gen_screen, gen_aim,
